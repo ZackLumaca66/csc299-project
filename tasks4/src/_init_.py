@@ -1,0 +1,1 @@
+from .tasks4 import main  # Enables `uv run tasks4`
