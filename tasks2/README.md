@@ -1,4 +1,4 @@
-```text
+
 # tasks2 CLI prototype
 
 How to run:
