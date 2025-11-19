@@ -1,0 +1,12 @@
+[project]
+name = "tasks3"
+version = "0.1.0"
+description = "Minimal tasks3 package with inc function and TaskManager usage"
+authors = [{name = "Your Name"}]
+requires-python = ">=3.10"
+
+[project.scripts]
+tasks3 = "tasks3:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["tasks3/src"]
