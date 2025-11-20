@@ -1,0 +1,17 @@
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# pytest cache and coverage
+.pytest_cache/
+.coverage
+
+# Editor and OS files
+.vscode/
+.DS_Store
+
+# Local task repo file
+tasks4_repo.json
