@@ -1,0 +1,61 @@
+/* Global Screen Settings */
+Screen {
+    background: #111; /* Deep Black */
+    color: #eee;
+    align: center middle;
+}
+
+/* The "Gameboy" Container */
+#main-layout {
+    width: 60;
+    height: 40;
+    border: heavy #00ff00; /* Retro Neon Green Border */
+    padding: 1;
+}
+
+/* --- TOP SECTION: THE CAT --- */
+#pet-display {
+    height: 45%;
+    content-align: center middle;
+    border-bottom: solid #444;
+    text-align: center;
+    color: #00ff00;
+    padding-bottom: 1;
+}
+
+/* --- BOTTOM SECTION: THE TASKS --- */
+#bottom-container {
+    height: 55%;
+}
+
+Input {
+    dock: top;
+    border: tall #00ff00;
+    background: #222;
+    color: #fff;
+    margin-bottom: 1;
+}
+
+ListView {
+    height: 100%;
+    background: #1a1a1a;
+    border: round #444;
+    scrollbar-gutter: stable;
+}
+
+TaskItem {
+    padding: 1;
+    border-bottom: solid #222;
+}
+
+/* Highlight the task you are hovering over */
+TaskItem:hover {
+    background: #333;
+}
+
+#help-text {
+    dock: bottom;
+    text-align: center;
+    padding-top: 1;
+    color: #666;
+}
