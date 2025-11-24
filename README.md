@@ -83,6 +83,29 @@ pytest -q tasks3/tests
 pytest -q tests
 ```
 
+If you prefer not to activate the virtual environment (or activation is blocked in PowerShell), use the included helper scripts:
+
+Windows PowerShell (no activation required):
+```powershell
+.\run_tests.ps1
+```
+
+macOS / Linux:
+```bash
+./run_tests.sh
+```
+
+PowerShell activation notes (if you do want to activate):
+- On Windows PowerShell run:
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+. .\.venv\Scripts\Activate.ps1
+```
+- Then install dev requirements:
+```powershell
+pip install -e . pytest
+```
+
 ## Next Steps
 - Consolidate extras into plugin-style modules
 - Enhance agent advice (prioritization, focus suggestions)
