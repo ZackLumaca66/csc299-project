@@ -27,6 +27,7 @@ def build_parser():
     edit_p = sub.add_parser('edit', help='edit a task'); edit_p.add_argument('id', type=int); edit_p.add_argument('text'); edit_p.add_argument('--backend', choices=['json','sqlite'])
     list_p = sub.add_parser('list', help='list tasks (dashboard)'); list_p.add_argument('--backend', choices=['json','sqlite'])
     describe_p = sub.add_parser('describe', help='add a detail bullet to a task'); describe_p.add_argument('id', type=int); describe_p.add_argument('detail', nargs='+')
+    complete_p = sub.add_parser('complete', help='mark a task completed (adds a checkmark)'); complete_p.add_argument('id', type=int); complete_p.add_argument('--backend', choices=['json','sqlite'])
     search_p = sub.add_parser('search', help='search tasks'); search_p.add_argument('query'); search_p.add_argument('--backend', choices=['json','sqlite'])
     del_p = sub.add_parser('delete', help='delete task'); del_p.add_argument('id', type=int); del_p.add_argument('--backend', choices=['json','sqlite'])
     # export and doc commands removed per user request
@@ -126,6 +127,19 @@ def main(argv=None):
             say('invalid id', style='red'); return 0
         t = tm.add_detail(real_id, text)
         say(f"added detail to {supplied}" if t else "task not found")
+    elif cmd == 'complete':
+        try:
+            supplied = int(args.id)
+            tasks = tm.list()
+            if 1 <= supplied <= len(tasks):
+                real_id = tasks[supplied-1].id
+            else:
+                say('task not found', style='red')
+                return 0
+        except Exception:
+            say('invalid id', style='red'); return 0
+        t = tm.set_completed(real_id, True)
+        say(f"completed task {supplied}: {t.text}" if t else 'task not found', style='green')
     # export and doc commands removed per user request
     elif cmd == 'chat':
         # normalize message (args.message may be list)
@@ -274,32 +288,81 @@ def main(argv=None):
             from .dashboard import show_dashboard
             show_dashboard(tm.list(), dm.list(), agent)
     elif cmd == 'home':
-        say('PKMS Home — quick commands:', style='bold')
-        say('  add "task text"          — create a task')
-        say('  list                     — show tasks and details')
-        say('  edit <id> "new text"    — edit a task')
-        say('  delete <id>              — delete a task (or via chat: delete task <id>)')
-        say('  describe <id> <detail>   — add a bullet detail to a task')
-        say('  dashboard [--interactive] — show dashboard; use --interactive for TUI')
-        say('  chat [--task-id <id>]    — start chat with AI companion; use "select task <id>" inside chat')
+        say('PKMS Home — quick commands', style='bold')
+        say('Add, manage, and ask about tasks — concise one-line help:')
+
+        say('  add <text>               — create a new task')
+        say('  edit <n> <text>          — edit task by list-number (1-based)')
+        say('  describe <n> <detail>    — add a bullet/detail to a task')
+        say('  delete <n>               — remove a task by list-number')
+        say('  list                    — show tasks-only dashboard')
+        say('  dashboard [--interactive]— show dashboard; --interactive launches TUI when available')
+        say('  chat [--task-id <n>]     — chat with the agent (advise commands only in single-message mode)')
+        say('  chat-history             — display saved chat history')
+        say('  advise                   — compact productivity advice')
+        say('  setup-llm                — store or remove OpenAI API key (use --show or --remove)')
+        say('  reset [--yes]            — DESTRUCTIVE: wipe persistent stores and chat history')
     elif cmd == 'instructions':
-        say('PKMS Detailed Instructions:', style='bold')
-        say('Data storage: by default data is stored in ./app_data/. Tasks persisted in SQLite (tasks.db).')
-        say('\nBasic concepts:')
-        say(' - Tasks: core items with text and optional details (bullet points).')
-        say(' - Details: small bullet descriptions attached to tasks; use `pkms describe <n> "text"` or in TUI `desc <n> <text>`.')
-        say(' - Selection: use chat `/select <n>` where <n> is the list number shown on the dashboard (1-based).')
-        say('\nCommon CLI examples:')
-        say('  pkms add "Buy milk"')
-        say('  pkms list')
-        say('  pkms edit 2 "New text"')
-        say('  pkms delete 3')
-        say('\nChat companion:')
-        say('  pkms chat --interactive')
-        say('  Inside chat: /select <n>  (select by list number), /advise  (productivity advice), suggest tasks, summarize task <n>')
+        say('PKMS Instructions', style='bold')
+        say('A brief command reference — one-line descriptions only.', style='cyan')
+        say('List numbers shown by `list` are 1-based and are the preferred identifiers.')
+
+        say('\nadd <text>')
+        say('  Create a new task with the given text.')
+
+        say('\nedit <n> <text>')
+        say('  Replace the text of task identified by list-number <n>.')
+
+        say('\ndescribe <n> <detail>')
+        say('  Append a short bullet/detail to task <n>.')
+
+        say('\nlist')
+        say('  Show the tasks-only dashboard.')
+
+        say('\ndashboard [--interactive]')
+        say('  Show dashboard; --interactive launches the TUI when available.')
+
+        say('\nsearch <query>')
+        say('  Find tasks matching the query string.')
+
+        say('\ndelete <n>')
+        say('  Permanently remove the task referenced by list-number <n>.')
+
+        say('\nchat [message] [--task-id <n>] [--interactive]')
+        say('  Chat with the agent; single-message mode accepts only advise commands; --interactive opens a constrained session.')
+        say('\n  Chat examples:')
+        say('    python -m pkms_core.cli chat "advise"')
+        say('    python -m pkms_core.cli chat "advise selected 1"')
+        say('    python -m pkms_core.cli chat --interactive  (then use: advise all | advise selected <n> | /select <n> | /exit)')
+
+        say('\nchat-history')
+        say('  Print saved chat history.')
+
+        say('\nadvise')
+        say('  Print a short productivity advice summary (heuristic + doc-derived count).')
+
+        say('\nsetup-llm [--show|--remove]')
+        say('  Store, view, or remove your OpenAI API key in the OS keyring.')
+
+        say('\nreset [--yes]')
+        say('  DESTRUCTIVE: remove all known persistent stores and chat history.')
+
+        say('\nhome')
+        say('  Print a short quick-reference of common commands.')
+
+        say('\ninstructions')
+        say('  Print this concise instructions page.')
+
+        say('\nshell')
+        say('  Start a small interactive shell for quick commands and chat.')
+
+        say('\ninfo')
+        say('  Print environment, active backend, and store file paths.')
+
         say('\nNotes:')
-        say('  - IDs shown in lists are the list numbers (1-based) and are the preferred identifiers for commands.')
-        say('  - The app reads `OPENAI_API_KEY` from the environment; if present the real LLM adapter will be used, otherwise a MockLLM is used.')
+        say('  - Use list numbers (1-based) when referring to tasks.')
+        say('  - Many commands accept `--backend json|sqlite` to control persistence.')
+        say('  - To enable LLM features set `OPENAI_API_KEY` or run `python -m pkms_core.cli setup-llm`.')
     elif cmd == 'info':
         # Display helpful environment and data path information
         say(f"cwd: {os.getcwd()}")

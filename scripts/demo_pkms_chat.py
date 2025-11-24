@@ -17,6 +17,10 @@ if ROOT not in sys.path:
 from pkms_core.agent import Agent
 from pkms_core.llm import LLMAdapter
 from pkms_core.llm_mock import MockLLM
+try:
+    from pkms_core.llm_openai import OpenAIAdapter  # type: ignore
+except Exception:
+    OpenAIAdapter = None  # type: ignore
 from pkms_core.models import Task, Document
 from pkms_core.storage import JsonTaskStore, DocumentStore
 from pkms_core.chat import ChatEngine, ChatHistory
@@ -26,14 +30,37 @@ import os
 
 def demo():
     base = os.getcwd()
-    # choose mock if no key present
-    adapter = LLMAdapter()
-    if not adapter.available():
-        print("No real LLM key found — using MockLLM for demo.")
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--llm", choices=["auto", "openai", "mock"], default="auto", help="Force LLM adapter selection: openai|mock|auto (default).")
+    args, _ = parser.parse_known_args()
+
+    # choose adapter according to flag or auto-detect
+    if args.llm == "openai":
+        if OpenAIAdapter is None:
+            print("OpenAI adapter not available in this environment; falling back to MockLLM.")
+            llm = MockLLM()
+        else:
+            oa = OpenAIAdapter()
+            if oa.available():
+                print("Using OpenAIAdapter as requested.")
+                llm = oa
+            else:
+                print("OpenAIAdapter not configured (missing key) — using MockLLM.")
+                llm = MockLLM()
+    elif args.llm == "mock":
+        print("Using MockLLM as requested.")
         llm = MockLLM()
     else:
-        print("LLM key detected — running with real adapter (calls will be provider-dependent).")
-        llm = adapter
+        # auto-detect
+        adapter = LLMAdapter()
+        if not adapter.available():
+            print("No real LLM key found — using MockLLM for demo.")
+            llm = MockLLM()
+        else:
+            print("LLM key detected — running with real adapter (calls will be provider-dependent).")
+            llm = adapter
 
     agent = Agent(llm=llm)
 
@@ -62,7 +89,7 @@ def demo():
         print(f"{d.title}: {s}")
 
     # Demo interactive chat backed by simple local stores
-    demo_dir = os.path.join(base, 'demo_data')
+    demo_dir = os.path.join(base, 'app_data')
     os.makedirs(demo_dir, exist_ok=True)
     tm = TaskManager(store=JsonTaskStore(os.path.join(demo_dir, 'tasks.json')))
     dm = DocumentManager(store=DocumentStore(os.path.join(demo_dir, 'docs.json')))
@@ -95,7 +122,9 @@ def demo():
             continue
         if line.startswith('/clear'):
             engine.clear_selection(); print('selection cleared'); continue
-        resp = engine.handle_message(line)
+        # allow leading slash for convenience (e.g. '/advise')
+        to_engine = line[1:] if line.startswith('/') else line
+        resp = engine.handle_message(to_engine)
         print(resp)
         history.save()
 

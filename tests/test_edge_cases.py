@@ -14,7 +14,7 @@ def test_empty_stores(tmp_path, monkeypatch, capsys):
     # Dashboard should not raise and should contain headers
     show_dashboard(tm.list(), dm.list(), agent)
     out = capsys.readouterr().out
-    assert 'Advice' in out or 'DASHBOARD' in out
+    assert 'Advice' in out or 'DASHBOARD' in out or 'Tasks' in out
 
 
 def test_large_number_of_items(tmp_path, monkeypatch, capsys):

@@ -6,19 +6,38 @@ from .models import Task, Document
 from .storage import make_task_store, make_document_store, TaskStore, DocumentStore
 
 class TaskManager:
-    def __init__(self, backend: str = 'json', store: Optional[TaskStore] = None, on_toggle: Optional[Callable[[Task,bool],None]] = None):
+    def __init__(self, backend: str = 'sqlite', store: Optional[TaskStore] = None, on_toggle: Optional[Callable[[Task,bool],None]] = None):
         root = os.getcwd()
         self.store = store or make_task_store(backend, root)
         self.tasks: List[Task] = self.store.load()
         self._next_id = max([t.id for t in self.tasks], default=0) + 1
         self.on_toggle = on_toggle
     def add(self, text: str) -> Task:
-        t = Task(id=self._next_id, text=text, created=datetime.now(timezone.utc).isoformat(), completed=False)
+        t = Task(id=self._next_id, text=text, created=datetime.now(timezone.utc).isoformat(), completed=False, details=[])
         self._next_id += 1
         self.tasks.append(t)
         try: self.store.add(t)
         except Exception: self.store.save_all(self.tasks)
         return t
+    def add_detail(self, task_id: int, detail: str) -> Optional[Task]:
+        for t in self.tasks:
+            if t.id == task_id:
+                t.details.append(detail)
+                try: self.store.update(t)
+                except Exception: self.store.save_all(self.tasks)
+                return t
+        return None
+    def remove_detail(self, task_id: int, index: int) -> Optional[Task]:
+        for t in self.tasks:
+            if t.id == task_id:
+                try:
+                    del t.details[index]
+                    try: self.store.update(t)
+                    except Exception: self.store.save_all(self.tasks)
+                    return t
+                except Exception:
+                    return None
+        return None
     def list(self, include_completed: bool = True) -> List[Task]:
         return list(self.tasks) if include_completed else [t for t in self.tasks if not t.completed]
     def search(self, query: str) -> List[Task]:
@@ -50,6 +69,15 @@ class TaskManager:
                 except Exception: self.store.save_all(self.tasks)
                 return True
         return False
+    def edit(self, task_id: int, new_text: str) -> Optional[Task]:
+        """Edit the text of an existing task and persist the change."""
+        for t in self.tasks:
+            if t.id == task_id:
+                t.text = new_text
+                try: self.store.update(t)
+                except Exception: self.store.save_all(self.tasks)
+                return t
+        return None
     def export(self, out_path: str) -> None:
         import json
         with open(out_path,'w',encoding='utf-8') as fh: json.dump([t.__dict__ for t in self.tasks], fh, indent=2)

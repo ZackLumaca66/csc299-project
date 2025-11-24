@@ -11,7 +11,7 @@ classifiers = ["Programming Language :: Python :: 3"]
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0.0", "coverage>=7.0.0"]
+dev = ["pytest>=8.0.0", "coverage>=7.0.0", "openai>=1.0.0"]
 
 [tool.coverage.run]
 branch = true

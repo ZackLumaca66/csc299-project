@@ -17,5 +17,6 @@ def test_productivity_advice_and_plain_dashboard(tmp_path, monkeypatch):
     assert any("Doc-derived" in a for a in advice)
     dash = build_plain(tm.list(), dm.list(), agent)
     assert "DASHBOARD" in dash
-    assert "Advice:" in dash
-    assert "Suggestions:" in dash
+    # Dashboard no longer includes advice/suggestions by design
+    assert "Advice:" not in dash
+    assert "Suggestions:" not in dash
