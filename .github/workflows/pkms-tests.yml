@@ -1,4 +1,4 @@
-[name: PKMS focused tests]
+name: PKMS focused tests
 on:
   push:
     branches: [ main, feature/*, master ]
