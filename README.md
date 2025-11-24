@@ -1,90 +1,133 @@
 [![Task-Neko tests](https://github.com/ZackLumaca66/csc299-project/actions/workflows/python-tests.yml/badge.svg)](https://github.com/ZackLumaca66/csc299-project/actions/workflows/python-tests.yml)
 
-# PKMS Core Prototype
+# PKMS Core
 
-Lean task + personal knowledge management CLI with selectable storage (JSON or SQLite) and ranked document search.
+Lean task + personal knowledge management CLI with selectable storage (JSON or SQLite), a focused dashboard,
+and a small chat/agent layer that can provide concise productivity advice.
 
 ## Features
-- Tasks: add, list, search, toggle, delete, export
-- Documents: add, list, search (ranked by token matches), view, delete
-- Storage: `--backend json` (simple) or `--backend sqlite` (durable)
-- Inverted index for faster, more relevant document search
-- Chat interface: `chat <message>`, `chat-history`, `chat-suggest`
-- Agent heuristics: summarize tasks/docs; extract TODO / imperative lines into suggestions
-- Optional LLM adapter: auto-activates when `OPENAI_KEY` or `ANTHROPIC_KEY` is set (falls back to heuristics otherwise)
-- Tested across managers, search logic, chat/agent (see `tests/` and `tasks3/tests/`)
+- Tasks: add, list (dashboard), edit, describe (add detail), search, delete
+- Storage: `--backend json` or `--backend sqlite` (select per-command or default in API)
+- Focused dashboard: the CLI `list` / `dashboard` shows tasks only (no docs/suggestions by default)
+- Chat/Agent: `chat` (interactive or single-message advise), `chat-history`, and `advise` for compact productivity tips
+- Optional LLM adapter: enable via `OPENAI_API_KEY` or use `setup-llm` to store the key in your OS keyring
+- Tests: see `tests/` and `tasks3/tests/` for coverage of core behaviors
 
-## Quick Start
-```bash
-# (Optional) create venv
-python -m venv .venv && . .venv/Scripts/activate  # Windows PowerShell
-# or: source .venv/bin/activate  # macOS/Linux
-
-# Install in editable mode
-pip install -e .
-
-# Add tasks
-pkms add "Write README"
 pkms add "Plan agent architecture" --backend sqlite
-pkms list
-pkms search plan
+## Quick Start
 
-# Documents
-pkms doc-add "Design" "Agent architecture draft" --tags design,agent
-pkms doc-search agent architecture
-pkms doc-view 1
+1) Create and activate a virtual environment (optional but recommended)
 
-# Export tasks
-pkms export tasks.json
+Bash (Git Bash / WSL / macOS):
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install -e .
 ```
 
+PowerShell (Windows):
+```powershell
+python -m venv .venv
+. .\.venv\Scripts\Activate.ps1
+python -m pip install -U pip
+pip install -e .
+```
+
+2) Use the CLI (module mode shown; the repo includes `pkms.bat` for Windows)
+
+Examples:
+```bash
+# List tasks (dashboard - tasks only)
+python -m pkms_core.cli list
+
+# Add a task (use the list-number in other commands; list numbers are 1-based)
+python -m pkms_core.cli add "Write README"
+
+# Edit a task (use the list-number shown by `list`)
+python -m pkms_core.cli edit 1 "Updated text"
+
+# Add a short detail/bullet to task 1
+python -m pkms_core.cli describe 1 "Clarify scope and acceptance criteria"
+
+# Search tasks
+python -m pkms_core.cli search "readme"
+
+# Delete a task
+python -m pkms_core.cli delete 2
+
+# Start interactive chat
+python -m pkms_core.cli chat --interactive
+
+# Single-message advise (non-interactive; only advise commands allowed)
+python -m pkms_core.cli chat advise
+python -m pkms_core.cli chat "advise selected 1"
+
+# Show chat history
+python -m pkms_core.cli chat-history
+
+# Show compact productivity advice (heuristic + short doc-derived summary)
+python -m pkms_core.cli advise
+
+# Wipe all app data (destructive — removes app_data, data_pkms, demo_data, tasks/db/json files)
+python -m pkms_core.cli reset --yes
+```
+
+Note: documents are used internally by the agent; document CLI export/import commands were removed to keep the CLI focused and terminal-first.
+
 ## Demo script
-We include a small demo script that showcases the agent and a mocked LLM adapter when no API key is present:
+
+Run a small demo of the chat/agent (uses mock LLM when no API key found):
 
 ```bash
 python scripts/demo_pkms_chat.py
 ```
 
-This prints agent productivity advice, document-derived suggestions, and mock LLM summaries suitable for a short demo video.
+This prints agent productivity advice, document-derived suggestion counts, and sample summaries.
 
-## Commands
-```text
-pkms add <text>
 pkms list
-pkms search <query>
-pkms toggle <id>
 pkms delete <id>
-pkms export <path>
-pkms doc-add <title> <text> [--tags tag1,tag2]
-pkms doc-list
-pkms doc-search <query>
-pkms doc-view <id>
-pkms doc-delete <id>
 pkms chat <message>
 pkms chat-history
-pkms chat-suggest
+## Commands (current)
 
-Interactive chat:
-```bash
-# Start interactive chat and optionally select a task
-pkms chat            # launches interactive chat session
-pkms chat --task-id 1  # attach task 1 to this chat session
-pkms chat --select   # interactively pick a task before chatting
-```
-Inside the interactive chat you can use commands:
-- `/select <id>` : select a task to attach context to the chat
-- `/clear`       : clear the current task selection
-- `/exit`        : leave the interactive chat
-```
-Add `--backend sqlite` to task commands for SQLite storage.
+The CLI exposes the following top-level commands. Most commands accept `--backend json|sqlite` where applicable.
 
-## Data Locations
-- JSON: `data_pkms/tasks.json`, `data_pkms/docs.json`
-- SQLite: `data_pkms/tasks.db`
+- `add <text>` — create a new task
+- `edit <n> <text>` — edit task by list-number (1-based)
+- `describe <n> <detail>` — add a detail / bullet to the listed task
+- `list` — show the tasks-only dashboard (same as `dashboard` without --interactive)
+- `dashboard [--interactive]` — show dashboard; `--interactive` launches the TUI when available
+- `search <query>` — find tasks matching the query
+- `delete <n>` — delete task by list-number
+- `chat [message] [--task-id <n>] [--interactive]` — chat with the agent; in single-message mode only `advise` commands are accepted
+- `chat-history` — show saved chat history
+- `advise` — print compact productivity advice summary
+- `setup-llm [--show|--remove]` — store or remove OpenAI API key in OS keyring (recommended) or use env var (see below)
+- `reset [--yes]` — destructive: removes app data, legacy stores, chat history, and clears in-process tasks
+- `home` — brief quick command listing
+- `instructions` — longer usage text and notes
+- `shell` — interactive REPL-like shell for quick commands and chat
+- `info` — print environment and data path information
+
+Inside the interactive chat you can use:
+- `select task <n>` or `/select <n>` — attach a task to the chat by list-number
+- `clear selection` or `/clear` — clear the selection
+- `advise all` or `advise selected <n>` — request productivity advice
+- `exit` or `/exit` — leave the interactive chat
+
+## Data locations
+
+By default the project will create an `app_data/` and/or `data_pkms/` directory in the project root depending on backend and migration status.
+
+- JSON stores (legacy/support): `data_pkms/tasks.json`, `data_pkms/docs.json`, or `app_data/tasks.json`
+- SQLite DB (durable): `app_data/tasks.db` or `data_pkms/tasks.db`
+
+The `reset` command removes these known locations (see `reset` docs above).
 
 ## Optional Extras
-- Neko pet & experimental dashboard (still in `tasks3/src/tasks3_cli/`)
-- Future Textual TUI planned as a plugin layer
+- Small experimental TUI available via `dashboard --interactive` when Textual is installed
+- `tasks3/` contains older demos and experiments (kept as examples)
 
 ## Tests
 Run all tests:
@@ -125,13 +168,24 @@ pip install -e . pytest
 - Package optional dependencies (rich/textual)
 
 ## Security & API Keys
-Set one of these environment variables to enable enhanced (stubbed) LLM summaries (future: real API calls):
 
-```
-export OPENAI_KEY=sk-...
-export ANTHROPIC_KEY=...
+To enable the real LLM adapter set `OPENAI_API_KEY` in your environment or use the CLI helper `setup-llm` to store the key in your OS keyring.
+
+Bash:
+```bash
+export OPENAI_API_KEY="sk-..."
 ```
 
-If neither is set the system uses local heuristic logic (fast, offline). Never commit keys—store them in your shell profile or a `.env` excluded by `.gitignore`. Replace `pkms_core/llm.py` with real provider calls as a drop-in upgrade.
+PowerShell:
+```powershell
+$env:OPENAI_API_KEY = "sk-..."
+```
+
+Or run:
+```bash
+python -m pkms_core.cli setup-llm
+```
+
+If no key is present the agent falls back to local heuristic logic. Never commit keys to source control.
 
 Enjoy vibecoding your PKMS & task workflows!

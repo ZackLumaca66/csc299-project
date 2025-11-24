@@ -18,4 +18,5 @@ def test_show_dashboard_renders_plain(tmp_path, monkeypatch, capsys):
     captured = capsys.readouterr()
     output = captured.out + captured.err
     assert 'Tasks' in output or 'DASHBOARD' in output
-    assert 'Advice' in output or 'Advice:' in output
+    # Dashboard intentionally does not include advice panels
+    assert 'Advice' not in output and 'Advice:' not in output

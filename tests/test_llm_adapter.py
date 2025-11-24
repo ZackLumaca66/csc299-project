@@ -4,7 +4,7 @@ from pkms_core.agent import Agent
 from pkms_core.models import Task
 
 def test_llm_adapter_unavailable():
-    for k in ('OPENAI_KEY','ANTHROPIC_KEY'):
+    for k in ('OPENAI_KEY','OPENAI_API_KEY','ANTHROPIC_KEY'):
         if k in os.environ: del os.environ[k]
     llm = LLMAdapter()
     assert not llm.available()
