@@ -1,0 +1,11 @@
+Prototype snapshot
+==================
+
+Tag: prototype/v0.1.0
+Commit: bf4c610
+Branch: feature/deliverables
+Date: 2025-11-24 03:50:08 -0600
+
+Notes:
+- This tag marks the saved prototype prior to further final-software work.
+- Use `git checkout prototype/v0.1.0` to inspect the snapshot.
