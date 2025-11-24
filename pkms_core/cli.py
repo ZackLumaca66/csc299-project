@@ -38,7 +38,12 @@ def build_parser():
     p.add_argument('--backend', choices=['json','sqlite'], default='json', help='task storage backend')
     p.add_argument('--verbose', action='store_true', help='enable verbose logging')
     # chat commands
-    chat_p = sub.add_parser('chat', help='send a chat message'); chat_p.add_argument('message'); chat_p.add_argument('--backend', choices=['json','sqlite'])
+    chat_p = sub.add_parser('chat', help='chat with the advisor (single message or interactive)')
+    chat_p.add_argument('message', nargs='*', help='optional message; if omitted runs interactive chat')
+    chat_p.add_argument('--task-id', type=int, help='task id to attach to this chat session')
+    chat_p.add_argument('--select', action='store_true', help='prompt to select a task before chatting')
+    chat_p.add_argument('--interactive', action='store_true', help='force interactive chat session')
+    chat_p.add_argument('--backend', choices=['json','sqlite'])
     chat_history = sub.add_parser('chat-history', help='show chat history'); chat_history.add_argument('--backend', choices=['json','sqlite'])
     chat_suggest = sub.add_parser('chat-suggest', help='suggest tasks from documents'); chat_suggest.add_argument('--backend', choices=['json','sqlite'])
     advise_p = sub.add_parser('advise', help='show productivity advice'); advise_p.add_argument('--backend', choices=['json','sqlite'])
@@ -89,9 +94,67 @@ def main(argv=None):
     elif cmd == 'doc-delete':
         ok = dm.delete(args.id); print('deleted' if ok else 'not found')
     elif cmd == 'chat':
-        response = chat_engine.handle_message(args.message)
-        say(response)
-        history.save()
+        # normalize message (args.message may be list)
+        msg = None
+        if isinstance(args.message, (list, tuple)) and len(args.message) > 0:
+            msg = ' '.join(args.message).strip()
+        elif isinstance(args.message, str) and args.message:
+            msg = args.message
+
+        # handle selection flags
+        if args.task_id:
+            ok = chat_engine.select_task(args.task_id)
+            if ok:
+                say(f"Selected task {args.task_id}", style='cyan')
+            else:
+                say(f"Task {args.task_id} not found", style='red')
+        elif args.select:
+            # prompt user to select from list
+            tasks = tm.list()
+            if not tasks:
+                say('No tasks available to select', style='yellow')
+            else:
+                say('Tasks:')
+                for t in tasks: say(f"{t.id}: {t.text}")
+                try:
+                    pick = input('Select task id (or blank to cancel): ').strip()
+                    if pick:
+                        tid = int(pick)
+                        ok = chat_engine.select_task(tid)
+                        say('selected' if ok else 'not found')
+                except Exception:
+                    say('invalid selection', style='red')
+
+        # single-message mode
+        if msg and not args.interactive:
+            response = chat_engine.handle_message(msg)
+            say(response)
+            history.save()
+        else:
+            # interactive chat loop
+            say("Entering interactive chat. Commands: /select <id>, /clear, /exit, /help")
+            while True:
+                try:
+                    line = input('chat> ').strip()
+                except (EOFError, KeyboardInterrupt):
+                    print() ; break
+                if not line: continue
+                if line in {'/exit','exit','quit'}: break
+                if line in {'/help','help'}:
+                    say("Commands: /select <id>, /clear, /exit, /help. You can also type 'summarize task <id>' or 'suggest tasks'.")
+                    continue
+                if line.startswith('/select '):
+                    try:
+                        tid = int(line.split()[1]); ok = chat_engine.select_task(tid)
+                        say(f"selected {tid}" if ok else 'not found')
+                    except Exception:
+                        say('bad id', style='red')
+                    continue
+                if line.startswith('/clear'):
+                    chat_engine.clear_selection(); say('selection cleared'); continue
+                resp = chat_engine.handle_message(line)
+                say(resp)
+                history.save()
     elif cmd == 'chat-history':
         for entry in history.entries:
             say(f"{entry['role']}: {entry['text']}")
@@ -142,6 +205,20 @@ def main(argv=None):
             if line.startswith('dashboard'):
                 from .dashboard import show_dashboard
                 show_dashboard(tm.list(), dm.list(), agent); continue
+            if line.startswith('/select '):
+                try:
+                    tid = int(line.split()[1]); ok = chat_engine.select_task(tid)
+                    print(f"selected {tid}" if ok else 'not found')
+                except Exception:
+                    print('bad id')
+                continue
+            if line.strip() == '/current':
+                cur = getattr(chat_engine, 'selected_task', None)
+                if cur:
+                    print(f"current selection: {cur.id}: {cur.text}")
+                else:
+                    print('no task selected')
+                continue
             # chat fallback
             resp = chat_engine.handle_message(line)
             print(resp)

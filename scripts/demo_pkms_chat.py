@@ -18,7 +18,9 @@ from pkms_core.agent import Agent
 from pkms_core.llm import LLMAdapter
 from pkms_core.llm_mock import MockLLM
 from pkms_core.models import Task, Document
-from pkms_core.storage import make_task_store, make_document_store
+from pkms_core.storage import JsonTaskStore, DocumentStore
+from pkms_core.chat import ChatEngine, ChatHistory
+from pkms_core.core import TaskManager, DocumentManager
 import os
 
 
@@ -58,6 +60,44 @@ def demo():
     for d in docs:
         s = llm.summarize(d.text)
         print(f"{d.title}: {s}")
+
+    # Demo interactive chat backed by simple local stores
+    demo_dir = os.path.join(base, 'demo_data')
+    os.makedirs(demo_dir, exist_ok=True)
+    tm = TaskManager(store=JsonTaskStore(os.path.join(demo_dir, 'tasks.json')))
+    dm = DocumentManager(store=DocumentStore(os.path.join(demo_dir, 'docs.json')))
+    # seed demo stores (if empty)
+    if not tm.tasks:
+        for t in tasks: tm.add(t.text)
+    if not dm.docs:
+        for d in docs: dm.add(d.title, d.text, tags=d.tags)
+
+    history = ChatHistory.load()
+    engine = ChatEngine(agent, tm, dm, history)
+    print('\n--- Interactive Chat Demo ---')
+    print("Type '/select <id>' to choose a task, or just type questions after selecting a task. Ctrl-C or '/exit' to quit.")
+    while True:
+        try:
+            line = input('chat> ').strip()
+        except (EOFError, KeyboardInterrupt):
+            print(); break
+        if not line: continue
+        if line in {'/exit','exit','quit'}: break
+        if line.startswith('/select '):
+            try:
+                tid = int(line.split()[1]); ok = engine.select_task(tid)
+                print(f"selected {tid}" if ok else 'not found')
+            except Exception:
+                print('bad id')
+            continue
+        if line.startswith('/help'):
+            print("Commands: /select <id>, /clear, /exit. After selecting a task, ask about the task or type 'suggest tasks'.")
+            continue
+        if line.startswith('/clear'):
+            engine.clear_selection(); print('selection cleared'); continue
+        resp = engine.handle_message(line)
+        print(resp)
+        history.save()
 
 
 if __name__ == '__main__':

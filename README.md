@@ -63,6 +63,18 @@ pkms doc-delete <id>
 pkms chat <message>
 pkms chat-history
 pkms chat-suggest
+
+Interactive chat:
+```bash
+# Start interactive chat and optionally select a task
+pkms chat            # launches interactive chat session
+pkms chat --task-id 1  # attach task 1 to this chat session
+pkms chat --select   # interactively pick a task before chatting
+```
+Inside the interactive chat you can use commands:
+- `/select <id>` : select a task to attach context to the chat
+- `/clear`       : clear the current task selection
+- `/exit`        : leave the interactive chat
 ```
 Add `--backend sqlite` to task commands for SQLite storage.
 
