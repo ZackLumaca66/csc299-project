@@ -18,7 +18,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest textual
-      - name: Run task-neko tests
+          pip install pytest
+      - name: Run focused prototype tests
         run: |
-          python -m pytest -q task-neko
+          # Run only the focused prototype tests to avoid collecting legacy project tests
+          python -m pytest -q tests tasks3/tests

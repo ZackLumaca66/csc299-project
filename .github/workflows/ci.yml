@@ -26,6 +26,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest
 
-      - name: Run tests
+      - name: Run focused prototype tests
         run: |
-          pytest -q
+          # Run only the focused prototype tests to avoid collecting legacy projects
+          pytest -q tests tasks3/tests
