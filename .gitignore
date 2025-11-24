@@ -1,17 +1,22 @@
-# Virtual environment
-.venv/
-
-# Python cache
+# Python
 __pycache__/
-*.py[cod]
+*.pyc
 
-# pytest cache and coverage
-.pytest_cache/
-.coverage
+# Virtual envs
+.venv/
+env/
 
-# Editor and OS files
+# Local data
+data_pkms/
+data/
+
+# Packaging artifacts
+pkms_core.egg-info/
+dist/
+build/
+
+# Editor
 .vscode/
-.DS_Store
 
-# Local task repo file
-tasks4_repo.json
+# OS
+.DS_Store
