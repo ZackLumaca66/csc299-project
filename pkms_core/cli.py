@@ -49,6 +49,7 @@ def build_parser():
     advise_p = sub.add_parser('advise', help='show productivity advice'); advise_p.add_argument('--backend', choices=['json','sqlite'])
     dash_p = sub.add_parser('dashboard', help='show dashboard summary'); dash_p.add_argument('--backend', choices=['json','sqlite'])
     shell_p = sub.add_parser('shell', help='interactive shell (enter commands or chat messages)'); shell_p.add_argument('--backend', choices=['json','sqlite'])
+    sub.add_parser('info', help='show environment and data paths')
     return p
 
 def main(argv=None):
@@ -167,6 +168,15 @@ def main(argv=None):
     elif cmd == 'dashboard':
         from .dashboard import show_dashboard
         show_dashboard(tm.list(), dm.list(), agent)
+    elif cmd == 'info':
+        # Display helpful environment and data path information
+        say(f"cwd: {os.getcwd()}")
+        store = getattr(tm, 'store', None)
+        dstore = getattr(dm, 'store', None)
+        backend_name = getattr(store, 'path', None)
+        say(f"task store: {getattr(store, 'path', repr(store))}")
+        say(f"document store: {getattr(dstore, 'path', repr(dstore))}")
+        say(f"active backend: {args.backend}")
     elif cmd == 'shell':
         print("Type '/help' for help, '/exit' to quit. Use command syntax or plain chat messages.")
         while True:
