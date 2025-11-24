@@ -56,18 +56,13 @@ class Agent:
         long_tasks = [t for t in tasks if len(t.text.split()) > 12 and not t.completed]
         if long_tasks:
             advice.append(f"Break down {len(long_tasks)} long tasks (>{12} words) for momentum.")
-        # Show top suggestions from documents
-        suggestions = self.suggest_tasks_from_documents(docs)[:5]
-        if suggestions:
-            advice.append("Doc-derived next actions:")
-            for s in suggestions:
-                advice.append(f" - {s}")
-        # Simple focus recommendation: first 3 incomplete tasks
-        focus = [t for t in tasks if not t.completed][:3]
-        if focus:
-            advice.append("Focus candidates:")
-            for t in focus:
-                advice.append(f" * {t.id}: {t.text}")
+        # Include a short doc-derived suggestions summary (count only) so callers
+        # can decide whether to surface document-derived suggestions elsewhere.
+        doc_suggestions = self.suggest_tasks_from_documents(docs) if docs else []
+        if doc_suggestions:
+            advice.append(f"Doc-derived suggestions: {len(doc_suggestions)} available.")
+        # Note: we avoid exposing full document-derived suggestion text or task IDs
+        # in the generic advice output to keep the dashboard concise.
         if not advice:
             advice.append("No advice available; add tasks or documents.")
         return advice
