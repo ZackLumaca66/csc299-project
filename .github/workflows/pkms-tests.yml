@@ -1,9 +1,21 @@
 name: PKMS focused tests
+feat/publish-ready
 on:
   push:
     branches: [ main, feature/*, master ]
   pull_request:
     paths: ["**"]
+
+
+on:
+  push:
+    branches: [ main, 'feature/*' ]
+  pull_request:
+    paths:
+      - 'pkms_core/**'
+      - 'tests/**'
+      - 'tasks3/**'
+ main
 
 jobs:
   test:
@@ -22,4 +34,4 @@ jobs:
         run: |
           pytest -q
         env:
-          CI: true
+          CI: true;
