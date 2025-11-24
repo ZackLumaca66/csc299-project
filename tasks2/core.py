@@ -1,5 +1,10 @@
 from dataclasses import dataclass, field
 from datetime import datetime
+try:
+    UTC = datetime.UTC
+except AttributeError:
+    from datetime import timezone as _tz
+    UTC = _tz.utc
 from typing import List
 
 @dataclass
@@ -7,7 +12,7 @@ class Task:
     title: str
     description: str = ""
     done: bool = False
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
     def mark_done(self):
         self.done = True

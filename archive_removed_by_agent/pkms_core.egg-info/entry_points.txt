@@ -1,0 +1,2 @@
+[console_scripts]
+pkms = pkms_core.cli:main

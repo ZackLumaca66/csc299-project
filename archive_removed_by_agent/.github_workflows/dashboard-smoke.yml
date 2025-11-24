@@ -1,0 +1,38 @@
+name: Dashboard smoke test
+
+on:
+  push:
+    paths:
+      - 'tasks3/**'
+  pull_request:
+    paths:
+      - 'tasks3/**'
+
+jobs:
+  import-dashboard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f tasks3/requirements.txt ]; then pip install -r tasks3/requirements.txt; fi
+      - name: Import dashboard (smoke)
+        run: |
+          python - <<'PY'
+import sys
+from pathlib import Path
+ROOT = Path('.').resolve()
+SRC = ROOT / 'tasks3' / 'src'
+sys.path.insert(0, str(SRC))
+try:
+    import tasks3_cli.dashboard as d
+    print('import-ok')
+except Exception as e:
+    print('import-failed', e)
+    raise
+PY

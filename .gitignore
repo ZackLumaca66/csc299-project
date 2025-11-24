@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual envs
+.venv/
+env/
+
+# Local data
+data_pkms/
+data/
+
+# Packaging artifacts
+pkms_core.egg-info/
+dist/
+build/
+
+# Editor
+.vscode/
+
+# OS
+.DS_Store

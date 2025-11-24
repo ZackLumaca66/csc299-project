@@ -1,0 +1,14 @@
+Demo recording instructions and placeholder YouTube URL
+
+Please record a 6-8 minute screencast demonstrating the following flows:
+
+1. Start the CLI: `python -m tasks3_cli`
+2. Add a document: `doc add "Demo Note" "This is a demo note" tags` (or run the provided demo script)
+3. Add a task: `add Record demo screencast`
+4. Use agent to list tasks: `chat show my tasks`
+5. Summarize documents: `chat summarize documents`
+6. Complete a task: `toggle 1` and show the `neko status`
+
+When your screencast is uploaded to YouTube, replace this file contents with the final public URL.
+
+Placeholder: https://youtube.example/your-demo-video

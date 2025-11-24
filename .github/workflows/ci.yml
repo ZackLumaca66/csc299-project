@@ -28,5 +28,9 @@ jobs:
 
       - name: Run focused prototype tests
         run: |
+feat/publish-ready
+          # Run only the focused prototype tests to avoid collecting legacy projects
+
           # Run only the focused prototype tests to avoid collecting legacy project tests
+main
           pytest -q tests tasks3/tests

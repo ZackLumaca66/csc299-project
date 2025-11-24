@@ -1,6 +1,8 @@
 name: Python tests
 
 on:
+feat/publish-ready
+
   workflow_dispatch: {}
   
   push:
@@ -37,6 +39,7 @@ jobs:
 name: Python tests
 
 on:
+ main
   push:
     branches: [ main, 'feature/*' ]
     paths:

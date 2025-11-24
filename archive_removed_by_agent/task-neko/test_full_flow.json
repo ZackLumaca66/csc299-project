@@ -1,0 +1,13 @@
+{
+    "life": 55,
+    "tasks": [
+        {
+            "text": "taskA",
+            "done": true
+        },
+        {
+            "text": "taskB-edited",
+            "done": false
+        }
+    ]
+}
