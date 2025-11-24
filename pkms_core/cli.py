@@ -6,8 +6,21 @@ from .agent import Agent
 from .llm import LLMAdapter
 from .logging_setup import init_logging
 
+# Optional rich Console for nicer CLI output
+try:
+    from rich.console import Console
+    console = Console()
+except Exception:
+    console = None
+
+def say(msg, style=None):
+    if console:
+        console.print(msg, style=style)
+    else:
+        print(msg)
+
 def build_parser():
-    p = argparse.ArgumentParser(prog='pkms', description='Task & PKMS CLI (prototype)')
+    p = argparse.ArgumentParser(prog='pkms', description='Task & PKMS CLI (prototype)', epilog='Examples: pkms add "Buy milk"; pkms advise; pkms dashboard')
     sub = p.add_subparsers(dest='command')
     # task commands
     add_p = sub.add_parser('add', help='add a task'); add_p.add_argument('text'); add_p.add_argument('--backend', choices=['json','sqlite'])
@@ -44,16 +57,18 @@ def main(argv=None):
     llm = LLMAdapter()
     if llm.available():
         logger.info('LLM adapter active (key detected).')
+        say('LLM adapter active (key detected).', style='green')
     else:
         logger.info('LLM adapter inactive (no key found).')
+        say('LLM adapter inactive (no key found).', style='yellow')
     agent = Agent(llm=llm)
     history = ChatHistory.load()
     chat_engine = ChatEngine(agent, tm, dm, history)
     cmd = args.command
     if cmd == 'add':
-        t = tm.add(args.text); print(f"added task {t.id}: {t.text}")
+        t = tm.add(args.text); say(f"added task {t.id}: {t.text}", style='cyan')
     elif cmd == 'list':
-        for t in tm.list(): print(f"[{ 'x' if t.completed else ' '}] {t.id}: {t.text}")
+        for t in tm.list(): say(f"[{ 'x' if t.completed else ' '}] {t.id}: {t.text}")
     elif cmd == 'search':
         for t in tm.search(args.query): print(f"{t.id}: {t.text}")
     elif cmd == 'toggle':
@@ -61,12 +76,12 @@ def main(argv=None):
     elif cmd == 'delete':
         ok = tm.delete(args.id); print('deleted' if ok else 'not found')
     elif cmd == 'export':
-        tm.export(args.path); print(f"exported to {args.path}")
+        tm.export(args.path); say(f"exported to {args.path}")
     elif cmd == 'doc-add':
         tags = [t.strip() for t in args.tags.split(',') if t.strip()] if args.tags else []
-        d = dm.add(args.title, args.text, tags=tags); print(f"added doc {d.id}: {d.title}")
+        d = dm.add(args.title, args.text, tags=tags); say(f"added doc {d.id}: {d.title}", style='cyan')
     elif cmd == 'doc-list':
-        for d in dm.list(): print(f"{d.id}: {d.title} [tags: {', '.join(d.tags)}]")
+        for d in dm.list(): say(f"{d.id}: {d.title} [tags: {', '.join(d.tags)}]")
     elif cmd == 'doc-search':
         for d in dm.search(args.query): print(f"{d.id}: {d.title}")
     elif cmd == 'doc-view':
@@ -75,17 +90,17 @@ def main(argv=None):
         ok = dm.delete(args.id); print('deleted' if ok else 'not found')
     elif cmd == 'chat':
         response = chat_engine.handle_message(args.message)
-        print(response)
+        say(response)
         history.save()
     elif cmd == 'chat-history':
         for entry in history.entries:
-            print(f"{entry['role']}: {entry['text']}")
+            say(f"{entry['role']}: {entry['text']}")
     elif cmd == 'chat-suggest':
         suggestions = agent.suggest_tasks_from_documents(dm.list())
-        for s in suggestions: print(f"- {s}")
+        for s in suggestions: say(f"- {s}")
     elif cmd == 'advise':
         advice = agent.productivity_advice(tm.list(), dm.list())
-        for line in advice: print(line)
+        for line in advice: say(line)
     elif cmd == 'dashboard':
         from .dashboard import show_dashboard
         show_dashboard(tm.list(), dm.list(), agent)

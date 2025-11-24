@@ -136,5 +136,17 @@
     "text": "Task B",
     "created": "2025-11-24T08:02:29.409323+00:00",
     "completed": false
+  },
+  {
+    "id": 24,
+    "text": "Task A",
+    "created": "2025-11-24T08:10:46.071639+00:00",
+    "completed": true
+  },
+  {
+    "id": 25,
+    "text": "Task B",
+    "created": "2025-11-24T08:10:46.072702+00:00",
+    "completed": false
   }
 ]

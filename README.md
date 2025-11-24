@@ -38,6 +38,15 @@ pkms doc-view 1
 pkms export tasks.json
 ```
 
+## Demo script
+We include a small demo script that showcases the agent and a mocked LLM adapter when no API key is present:
+
+```bash
+python scripts/demo_pkms_chat.py
+```
+
+This prints agent productivity advice, document-derived suggestions, and mock LLM summaries suitable for a short demo video.
+
 ## Commands
 ```text
 pkms add <text>
