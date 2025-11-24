@@ -1,0 +1,14 @@
+2025-11-19 21:24:54,660 INFO Tamagotchi.heal: new life=57
+2025-11-19 21:24:54,660 INFO Saved data to task-neko/test_run_ps.json: life=57, tasks=1
+2025-11-19 21:24:54,661 INFO Saved data to task-neko/test_run_ps.json: life=57, tasks=1
+2025-11-19 21:30:46,504 INFO Tamagotchi.heal: new life=55
+2025-11-19 21:30:46,505 INFO Saved data to task-neko/test_full_flow.json: life=55, tasks=2
+2025-11-19 21:30:46,505 INFO Saved data to task-neko/test_full_flow.json: life=55, tasks=2
+2025-11-19 21:33:33,913 INFO Tamagotchi.heal: new life=65
+2025-11-19 21:33:33,914 INFO Saved data to task-neko/test_css.json: life=65, tasks=1
+2025-11-19 21:33:33,914 INFO Saved data to task-neko/test_css.json: life=65, tasks=1
+2025-11-19 21:39:18,349 INFO Add task: .venv/Scripts/python.exe -m py_compile task-neko/main.py && echo 'py-compile-ok' || echo 'py-compile-failed'
+2025-11-19 21:39:18,360 INFO Saved data to task_neko_data.json: life=100, tasks=9
+2025-11-19 21:40:47,069 INFO Add task: No
+2025-11-19 21:40:47,070 INFO Saved data to task_neko_data.json: life=100, tasks=10
+2025-11-19 22:36:47,473 INFO Saved data to task_neko_data.json: life=99, tasks=8

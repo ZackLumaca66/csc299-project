@@ -1,0 +1,112 @@
+[
+  {
+    "id": 1,
+    "title": "Dev Plan",
+    "text": "TODO: implement chat\nRefactor core module\nAdd tests soon",
+    "tags": [
+      "plan"
+    ],
+    "links": [],
+    "created": "2025-11-24T07:08:40.824027+00:00",
+    "updated": "2025-11-24T07:08:40.824027+00:00"
+  },
+  {
+    "id": 2,
+    "title": "Dev Plan",
+    "text": "TODO: implement chat\nRefactor core module\nAdd tests soon",
+    "tags": [
+      "plan"
+    ],
+    "links": [],
+    "created": "2025-11-24T07:16:24.343894+00:00",
+    "updated": "2025-11-24T07:16:24.343894+00:00"
+  },
+  {
+    "id": 3,
+    "title": "Dev Plan",
+    "text": "TODO: implement chat\nRefactor core module\nAdd tests soon",
+    "tags": [
+      "plan"
+    ],
+    "links": [],
+    "created": "2025-11-24T07:23:42.072705+00:00",
+    "updated": "2025-11-24T07:23:42.072705+00:00"
+  },
+  {
+    "id": 4,
+    "title": "TestDoc",
+    "text": "TODO: validate cli",
+    "tags": [
+      "test"
+    ],
+    "links": [],
+    "created": "2025-11-24T07:26:00.382440+00:00",
+    "updated": "2025-11-24T07:26:00.382440+00:00"
+  },
+  {
+    "id": 5,
+    "title": "DemoDoc",
+    "text": "TODO: record video\\nImplement dashboard panel",
+    "tags": [
+      "demo"
+    ],
+    "links": [],
+    "created": "2025-11-24T07:27:21.630576+00:00",
+    "updated": "2025-11-24T07:27:21.630576+00:00"
+  },
+  {
+    "id": 6,
+    "title": "Dev Plan",
+    "text": "TODO: implement chat\nRefactor core module\nAdd tests soon",
+    "tags": [
+      "plan"
+    ],
+    "links": [],
+    "created": "2025-11-24T07:32:37.005314+00:00",
+    "updated": "2025-11-24T07:32:37.005314+00:00"
+  },
+  {
+    "id": 7,
+    "title": "Dev Plan",
+    "text": "TODO: implement chat\nRefactor core module\nAdd tests soon",
+    "tags": [
+      "plan"
+    ],
+    "links": [],
+    "created": "2025-11-24T07:38:31.094367+00:00",
+    "updated": "2025-11-24T07:38:31.094367+00:00"
+  },
+  {
+    "id": 8,
+    "title": "Dev Plan",
+    "text": "TODO: implement chat\nRefactor core module\nAdd tests soon",
+    "tags": [
+      "plan"
+    ],
+    "links": [],
+    "created": "2025-11-24T07:40:18.223384+00:00",
+    "updated": "2025-11-24T07:40:18.223384+00:00"
+  },
+  {
+    "id": 9,
+    "title": "Dev Plan",
+    "text": "TODO: implement chat\nRefactor core module\nAdd tests soon",
+    "tags": [
+      "plan"
+    ],
+    "links": [],
+    "created": "2025-11-24T07:41:32.154147+00:00",
+    "updated": "2025-11-24T07:41:32.154147+00:00"
+  },
+  {
+    "id": 10,
+    "title": "Dev Plan",
+    "text": "TODO: implement chat\nRefactor core module\nAdd tests soon",
+    "tags": [
+      "plan"
+    ],
+    "links": [],
+    "created": "2025-11-24T07:58:34.539102+00:00",
+    "updated": "2025-11-24T07:58:34.539102+00:00"
+  }
+]

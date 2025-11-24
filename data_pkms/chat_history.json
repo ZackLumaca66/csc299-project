@@ -1,0 +1,26 @@
+[
+  {
+    "role": "user",
+    "text": "suggest tasks"
+  },
+  {
+    "role": "assistant",
+    "text": "- implement chat\n- Refactor core module\n- Add tests soon\n- validate cli\n- record video\\nImplement dashboard panel"
+  },
+  {
+    "role": "user",
+    "text": "summarize doc 1"
+  },
+  {
+    "role": "assistant",
+    "text": "Dev Plan: TODO: implement chat"
+  },
+  {
+    "role": "user",
+    "text": "summarize task 11"
+  },
+  {
+    "role": "assistant",
+    "text": "Write integration tests for chat"
+  }
+]

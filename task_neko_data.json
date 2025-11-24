@@ -1,0 +1,37 @@
+{
+    "life": 99,
+    "tasks": [
+        {
+            "text": "cut the grass",
+            "done": false
+        },
+        {
+            "text": "cut the grass",
+            "done": false
+        },
+        {
+            "text": "do homework",
+            "done": false
+        },
+        {
+            "text": "bash -n run.sh && echo 'syntax-ok' || echo 'syntax-error'",
+            "done": false
+        },
+        {
+            "text": "del",
+            "done": false
+        },
+        {
+            "text": "cut the grass",
+            "done": false
+        },
+        {
+            "text": "do homework",
+            "done": false
+        },
+        {
+            "text": "do science project",
+            "done": false
+        }
+    ]
+}

@@ -1,3 +1,13 @@
+Metadata-Version: 2.4
+Name: pkms-core
+Version: 0.1.0
+Summary: Prototype Task & Personal Knowledge Management CLI (JSON/SQLite)
+Author: Zack
+License-Expression: LicenseRef-Proprietary
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: typer>=0.9.0
+
 [![Task-Neko tests](https://github.com/ZackLumaca66/csc299-project/actions/workflows/python-tests.yml/badge.svg)](https://github.com/ZackLumaca66/csc299-project/actions/workflows/python-tests.yml)
 
 # PKMS Core Prototype

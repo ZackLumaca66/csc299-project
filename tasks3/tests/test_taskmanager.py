@@ -1,9 +1,12 @@
-from tasks2.core import TaskManager
+from tasks3_cli.core import TaskManager
 
 def test_add_and_complete():
     tm = TaskManager()
-    tm.add("Task A")
-    tm.add("Task B")
-    tm.complete("Task A")
-    assert [t.title for t in tm.completed()] == ["Task A"]
-    assert [t.title for t in tm.pending()] == ["Task B"]
+    existing_ids = {t.id for t in tm.list()}
+    t_a = tm.add("Task A")
+    t_b = tm.add("Task B")
+    tm.set_completed(t_a.id, True)
+    completed_new = [t.text for t in tm.list() if t.completed and t.id not in existing_ids]
+    pending_new = [t.text for t in tm.list() if not t.completed and t.id not in existing_ids]
+    assert completed_new == ["Task A"]
+    assert pending_new == ["Task B"]
