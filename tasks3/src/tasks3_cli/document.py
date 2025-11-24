@@ -7,7 +7,7 @@ import json
 import os
 import re
 from dataclasses import dataclass, asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Dict, Set, Tuple
 
 
@@ -64,7 +64,7 @@ class DocumentManager:
     def add(self, title: str, text: str, tags: Optional[List[str]] = None, links: Optional[List[str]] = None) -> Document:
         tags = tags or []
         links = links or []
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         doc = Document(id=self._next_id, title=title, text=text, tags=tags, links=links, created=now, updated=now)
         self._next_id += 1
         self.docs.append(doc)

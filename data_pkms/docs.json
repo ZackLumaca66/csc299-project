@@ -108,5 +108,27 @@
     "links": [],
     "created": "2025-11-24T07:58:34.539102+00:00",
     "updated": "2025-11-24T07:58:34.539102+00:00"
+  },
+  {
+    "id": 11,
+    "title": "Dev Plan",
+    "text": "TODO: implement chat\nRefactor core module\nAdd tests soon",
+    "tags": [
+      "plan"
+    ],
+    "links": [],
+    "created": "2025-11-24T08:00:18.978944+00:00",
+    "updated": "2025-11-24T08:00:18.978944+00:00"
+  },
+  {
+    "id": 12,
+    "title": "Dev Plan",
+    "text": "TODO: implement chat\nRefactor core module\nAdd tests soon",
+    "tags": [
+      "plan"
+    ],
+    "links": [],
+    "created": "2025-11-24T08:02:24.647192+00:00",
+    "updated": "2025-11-24T08:02:24.647192+00:00"
   }
 ]

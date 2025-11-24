@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass, asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Callable
 
 
@@ -56,7 +56,7 @@ class TaskManager:
             json.dump([t.to_dict() for t in self.tasks], fh, indent=2)
 
     def add(self, text: str) -> Task:
-        t = Task(id=self._next_id, text=text, created=datetime.utcnow().isoformat(), completed=False)
+        t = Task(id=self._next_id, text=text, created=datetime.now(timezone.utc).isoformat(), completed=False)
         self._next_id += 1
         self.tasks.append(t)
         self.save()

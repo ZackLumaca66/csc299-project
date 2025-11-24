@@ -1,6 +1,6 @@
 from __future__ import annotations
 import os, re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional, Set, Dict, Tuple, Callable
 from .models import Task, Document
 from .storage import make_task_store, make_document_store, TaskStore, DocumentStore
@@ -13,7 +13,7 @@ class TaskManager:
         self._next_id = max([t.id for t in self.tasks], default=0) + 1
         self.on_toggle = on_toggle
     def add(self, text: str) -> Task:
-        t = Task(id=self._next_id, text=text, created=datetime.utcnow().isoformat(), completed=False)
+        t = Task(id=self._next_id, text=text, created=datetime.now(timezone.utc).isoformat(), completed=False)
         self._next_id += 1
         self.tasks.append(t)
         try: self.store.add(t)
@@ -74,7 +74,7 @@ class DocumentManager:
         for d in self.docs: self._index_doc(d)
     def add(self, title: str, text: str, tags: Optional[List[str]] = None, links: Optional[List[str]] = None) -> Document:
         tags = tags or []; links = links or []
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         doc = Document(id=self._next_id, title=title, text=text, tags=tags, links=links, created=now, updated=now)
         self._next_id += 1
         self.docs.append(doc)
