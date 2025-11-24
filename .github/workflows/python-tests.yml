@@ -2,9 +2,17 @@ name: Python tests
 
 on:
   push:
-    branches: [ main, master, feature/* ]
+    branches: [ main, 'feature/*' ]
+    paths:
+      - 'pkms_core/**'
+      - 'tests/**'
+      - 'tasks3/**'
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
+    paths:
+      - 'pkms_core/**'
+      - 'tests/**'
+      - 'tasks3/**'
 
 jobs:
   test:
