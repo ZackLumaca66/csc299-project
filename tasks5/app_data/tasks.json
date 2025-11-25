@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "text": "Pay invoice",
+    "created": "2025-11-25T22:49:32.877938+00:00",
+    "completed": false,
+    "details": [],
+    "priority": 4,
+    "tags": [
+      "finance",
+      "urgent"
+    ]
+  },
+  {
+    "id": 2,
+    "text": "Test complete task",
+    "created": "2025-11-25T22:59:53.091970+00:00",
+    "completed": true,
+    "details": [],
+    "priority": 3,
+    "tags": []
+  }
+]
