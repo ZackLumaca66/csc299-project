@@ -2,7 +2,7 @@ from __future__ import annotations
 import json, os, sqlite3
 from typing import List, Optional
 from dataclasses import asdict
-from .models import Task, Document
+from .models import Task, Document, Note
 
 class TaskStore:
     def load(self) -> List[Task]:
@@ -232,3 +232,189 @@ def make_document_store(base_dir: str) -> DocumentStore:
             if os.path.exists(dest):
                 break
     return DocumentStore(dest)
+
+
+def make_note_store(kind: str, base_dir: str):
+    """Create a note store for 'json' or 'sqlite' backends.
+    Notes are stored in `app_data/notes.json` or `app_data/notes.db` (sqlite path uses tasks.db dir).
+    """
+    data_dir = os.path.join(base_dir, 'app_data'); os.makedirs(data_dir, exist_ok=True)
+    db_path = os.path.join(data_dir, 'notes.db')
+    json_path = os.path.join(data_dir, 'notes.json')
+
+    class JsonNoteStore:
+        def __init__(self, path: str):
+            self.path = path
+        def load(self) -> List[Note]:
+            if os.path.exists(self.path):
+                try:
+                    with open(self.path, 'r', encoding='utf-8') as fh:
+                        data = json.load(fh)
+                    return [Note(**n) for n in data]
+                except Exception:
+                    return []
+            return []
+        def save_all(self, notes: List[Note]) -> None:
+            with open(self.path, 'w', encoding='utf-8') as fh:
+                json.dump([asdict(n) for n in notes], fh, indent=2, ensure_ascii=False)
+        def add(self, note: Note) -> None:
+            notes = self.load(); notes.append(note); self.save_all(notes)
+        def delete(self, note_id: int) -> bool:
+            notes = self.load()
+            for i,n in enumerate(notes):
+                if n.id == note_id:
+                    del notes[i]; self.save_all(notes); return True
+            return False
+        def update(self, note: Note) -> None:
+            notes = self.load()
+            for i,n in enumerate(notes):
+                if n.id == note.id: notes[i]=note; break
+            self.save_all(notes)
+
+    class SqliteNoteStore:
+        def __init__(self, path: str):
+            self.path = path
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            self._ensure_schema()
+        def _conn(self): return sqlite3.connect(self.path)
+        def _ensure_schema(self):
+            with self._conn() as conn:
+                conn.execute("""CREATE TABLE IF NOT EXISTS notes (
+                    id INTEGER PRIMARY KEY,
+                    text TEXT,
+                    created TEXT,
+                    details TEXT
+                )""")
+        def load(self) -> List[Note]:
+            with self._conn() as conn:
+                rows = conn.execute("SELECT id,text,created,details FROM notes ORDER BY id ASC").fetchall()
+            import json as _json
+            result: List[Note] = []
+            for r in rows:
+                details = []
+                if r[3]:
+                    try:
+                        details = _json.loads(r[3])
+                    except Exception:
+                        details = []
+                result.append(Note(id=r[0], text=r[1], created=r[2], details=details))
+            return result
+        def save_all(self, notes: List[Note]) -> None:
+            with self._conn() as conn:
+                conn.execute("DELETE FROM notes")
+                import json as _json
+                for n in notes:
+                    conn.execute("INSERT INTO notes(id,text,created,details) VALUES(?,?,?,?)",
+                                 (n.id, n.text, n.created, _json.dumps(getattr(n, 'details', []))),)
+        def add(self, note: Note) -> None:
+            with self._conn() as conn:
+                import json as _json
+                conn.execute("INSERT INTO notes(id,text,created,details) VALUES(?,?,?,?)",
+                             (note.id, note.text, note.created, _json.dumps(getattr(note, 'details', []))),)
+        def update(self, note: Note) -> None:
+            with self._conn() as conn:
+                import json as _json
+                conn.execute("UPDATE notes SET text=?, created=?, details=? WHERE id=?",
+                             (note.text, note.created, _json.dumps(getattr(note, 'details', [])), note.id))
+        def delete(self, note_id: int) -> bool:
+            with self._conn() as conn:
+                cur = conn.execute("DELETE FROM notes WHERE id=?", (note_id,))
+                return cur.rowcount>0
+
+    # Migration or legacy best-effort: if sqlite requested and DB missing, try to migrate from legacy json
+    def _migrate_from_json(src_json: str, target_db: str) -> None:
+        try:
+            if not os.path.exists(src_json):
+                return
+            import json as _json
+            with open(src_json, 'r', encoding='utf-8') as fh:
+                data = _json.load(fh)
+            if not isinstance(data, list) or not data:
+                return
+            SqliteNoteStore(target_db)._ensure_schema()
+            conn = SqliteNoteStore(target_db)._conn()
+            with conn:
+                for item in data:
+                    details = _json.dumps(item.get('details', []))
+                    conn.execute("INSERT OR IGNORE INTO notes(id,text,created,details) VALUES(?,?,?,?)",
+                                 (item.get('id'), item.get('text'), item.get('created'), details),)
+        except Exception:
+            return
+
+    # Return appropriate store
+    if kind == 'sqlite':
+        if not os.path.exists(db_path):
+            # attempt legacy json locations
+            for loc in (os.path.join(base_dir, 'data_pkms'), os.path.join(base_dir, 'demo_data')):
+                try_src = os.path.join(loc, 'notes.json')
+                _migrate_from_json(try_src, db_path)
+            _migrate_from_json(os.path.join(base_dir, 'notes.json'), db_path)
+        return SqliteNoteStore(db_path)
+    # json backend: copy from legacy if missing
+    if not os.path.exists(json_path):
+        for loc in (os.path.join(base_dir, 'data_pkms'), os.path.join(base_dir, 'demo_data')):
+            candidate = os.path.join(loc, 'notes.json')
+            try:
+                if os.path.exists(candidate):
+                    import shutil
+                    shutil.copyfile(candidate, json_path)
+                    break
+            except Exception:
+                continue
+    return JsonNoteStore(json_path)
+
+
+### Outward-facing helpers for notes (backend dispatch)
+def _map_display_index_to_id(items: List, display_index: int):
+    # display_index is 1-based
+    if display_index <= 0 or display_index > len(items):
+        raise IndexError('display index out of range')
+    return items[display_index-1].id
+
+def list_notes(backend: str, base_dir: str) -> List[Note]:
+    store = make_note_store(backend, base_dir)
+    return store.load()
+
+def add_note(backend: str, base_dir: str, text: str) -> Note:
+    notes = list_notes(backend, base_dir)
+    next_id = (max((n.id for n in notes), default=0) + 1) if notes else 1
+    from datetime import datetime, timezone
+    created = datetime.now(timezone.utc).isoformat()
+    note = Note(id=next_id, text=text, created=created, details=[])
+    store = make_note_store(backend, base_dir)
+    store.add(note)
+    return note
+
+def describe_note(backend: str, base_dir: str, display_index: int, detail: str) -> None:
+    notes = list_notes(backend, base_dir)
+    note_id = _map_display_index_to_id(notes, display_index)
+    store = make_note_store(backend, base_dir)
+    # find note modify then update
+    for n in notes:
+        if n.id == note_id:
+            n.details.append(detail)
+            store.update(n)
+            return
+    raise KeyError('note not found')
+
+def delete_note(backend: str, base_dir: str, display_index: int) -> bool:
+    notes = list_notes(backend, base_dir)
+    note_id = _map_display_index_to_id(notes, display_index)
+    store = make_note_store(backend, base_dir)
+    return store.delete(note_id)
+
+def search_notes(backend: str, base_dir: str, query: str) -> List[Note]:
+    q = (query or '').lower()
+    results: List[Note] = []
+    for n in list_notes(backend, base_dir):
+        if q in (n.text or '').lower() or any(q in (d or '').lower() for d in getattr(n, 'details', [])):
+            results.append(n)
+    return results
+
+def get_note_by_display_index(backend: str, base_dir: str, display_index: int) -> Note:
+    notes = list_notes(backend, base_dir)
+    note_id = _map_display_index_to_id(notes, display_index)
+    for n in notes:
+        if n.id == note_id:
+            return n
+    raise KeyError('note not found')

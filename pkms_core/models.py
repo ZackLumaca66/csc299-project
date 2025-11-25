@@ -14,6 +14,15 @@ class Task:
         return asdict(self)
 
 @dataclass
+class Note:
+    id: int
+    text: str
+    created: str
+    details: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict:
+        return asdict(self)
+@dataclass
 class Document:
     id: int
     title: str

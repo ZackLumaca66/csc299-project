@@ -3,8 +3,9 @@ import json
 import os
 from typing import List, Dict, Optional
 
-from .models import Task, Document
+from .models import Task, Document, Note
 from .agent import Agent
+from .storage import list_notes, get_note_by_display_index
 
 CHAT_HISTORY_FILE = os.path.join(os.getcwd(), "data_pkms", "chat_history.json")
 
@@ -43,6 +44,7 @@ class ChatEngine:
         self.dm = doc_manager
         self.history = history
         self.selected_task: Optional[Task] = None
+        self.selected_note: Optional[Note] = None
         self._pending_confirmation: Optional[Dict[str, int]] = None
 
     def select_task(self, task_id: int) -> bool:
@@ -64,6 +66,25 @@ class ChatEngine:
 
     def clear_selection(self) -> None:
         self.selected_task = None
+
+    def select_note(self, note_id: int) -> bool:
+        # Try persistent id first, then 1-based index
+        try:
+            notes = list_notes('json', os.getcwd())
+            note = next((n for n in notes if n.id == note_id), None)
+            if note:
+                self.selected_note = note
+                return True
+            idx = int(note_id)
+            if 1 <= idx <= len(notes):
+                self.selected_note = notes[idx-1]
+                return True
+        except Exception:
+            pass
+        return False
+
+    def clear_note_selection(self) -> None:
+        self.selected_note = None
 
     def handle_message(self, message: str) -> str:
         self.history.add("user", message)
@@ -101,6 +122,22 @@ class ChatEngine:
             self.history.add("assistant", response)
             return response
 
+        if msg.startswith("select note ") or msg.startswith("/select-note "):
+            try:
+                nid = int(msg.split()[-1])
+                ok = self.select_note(nid)
+                response = f"selected note {nid}" if ok else "note not found"
+            except Exception:
+                response = "Invalid note id"
+            self.history.add("assistant", response)
+            return response
+
+        if msg in {"clear note selection", "clear note", "clear-note", "clear-note selection"}:
+            self.clear_note_selection()
+            response = "note selection cleared"
+            self.history.add("assistant", response)
+            return response
+
         if msg in {"clear selection", "clear"}:
             self.clear_selection()
             response = "selection cleared"
@@ -135,6 +172,10 @@ class ChatEngine:
                     + " Keep tone concise and practical; each suggestion should be ~10-15 words and may include a short rationale in parentheses."
                     + " Do not list internal IDs or verbatim document action lists."
                 )
+                # If a note is selected, append a short note context to the prompt
+                if self.selected_note:
+                    note_ctx = (self.selected_note.text or '')[:120]
+                    prompt = prompt + f"\nNoteContext: {note_ctx}"
                 try:
                     llm_resp = llm.summarize(prompt)
                     if llm_resp:
@@ -148,6 +189,8 @@ class ChatEngine:
             else:
                 # Fall back to the simpler heuristic advice (which now avoids doc-derived lists)
                 advice_lines = self.agent.productivity_advice(tasks, docs)
+                if self.selected_note:
+                    advice_lines.insert(0, f"Note focus: {(self.selected_note.text or '')[:120]}")
                 response = "\n".join(advice_lines)
             self.history.add("assistant", response)
             return response
@@ -276,6 +319,8 @@ class ChatEngine:
                 response = f"Selected task {self.selected_task.id}: {summary}"
                 if advice_lines:
                     response += "\n" + "\n".join(advice_lines)
+                if self.selected_note:
+                    response = f"Note focus: {(self.selected_note.text or '')[:120]}\n" + response
             self.history.add("assistant", response)
             return response
 

@@ -85,6 +85,34 @@ python scripts/demo_pkms_chat.py
 
 This prints agent productivity advice, document-derived suggestion counts, and sample summaries.
 
+## Notes (PKMS)
+
+This project also supports a lightweight Notes model integrated into the CLI and chat. Notes are stored alongside tasks and can be persisted using either JSON or SQLite backends.
+
+Commands (examples):
+
+```bash
+# Add a note
+python -m pkms_core.cli notes add "Outline architecture for agent"
+
+# List notes (1-based indices)
+python -m pkms_core.cli notes list
+
+# Add a detail bullet to note 1
+python -m pkms_core.cli notes describe 1 "Include migration notes"
+
+# Search notes
+python -m pkms_core.cli notes search architecture
+
+# Delete note by list-number
+python -m pkms_core.cli notes delete 1
+
+# Start chat with a note attached (use list-number)
+python -m pkms_core.cli chat --note-id 1 advise
+```
+
+Notes are shown in the dashboard summary (recent snippets) and can be selected inside the interactive chat using `/select-note <n>` or `select note <n>` commands.
+
 pkms list
 pkms delete <id>
 pkms chat <message>
