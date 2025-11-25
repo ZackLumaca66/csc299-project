@@ -138,6 +138,49 @@ The CLI exposes the following top-level commands. Most commands accept `--backen
 - `shell` — interactive REPL-like shell for quick commands and chat
 - `info` — print environment and data path information
 
+## Priority & Tags
+
+Tasks now support simple metadata to help prioritize and filter work:
+
+- `priority` (int 1–5, default 3): higher numbers mean higher priority.
+- `tags` (list of strings): free-form labels attached to a task (stored as a JSON array in SQLite).
+
+Add a task with priority and tags:
+
+```bash
+python -m pkms_core.cli add "Draft sprint plan" --priority 5 --tags "planning,sprint"
+```
+
+Tags are stored as a JSON array (e.g. `["planning","sprint"]`) in the SQLite `tags` column and as a list in the JSON backend. This keeps the format explicit and easy to evolve.
+
+## Daily Review
+
+Use the `review` command to get a quick daily summary of items you added today:
+
+```bash
+python -m pkms_core.cli review
+```
+
+The command prints counts and short truncated text for tasks and notes added today.
+
+## Export / Import (JSON)
+
+You can export your tasks and notes to a single JSON file and import them later. The export format is a simple JSON object with `tasks` and `notes` arrays.
+
+Export:
+
+```bash
+python -m pkms_core.cli export backup.json
+```
+
+Import (appends items, assigning new IDs locally):
+
+```bash
+python -m pkms_core.cli import backup.json
+```
+
+The importer appends tasks and notes into the active backend, preserving details. If you want the remote to match exactly, run `reset` first.
+
 Inside the interactive chat you can use:
 - `select task <n>` or `/select <n>` — attach a task to the chat by list-number
 - `clear selection` or `/clear` — clear the selection

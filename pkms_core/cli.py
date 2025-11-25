@@ -24,6 +24,8 @@ def build_parser():
     sub = p.add_subparsers(dest='command')
     # task commands
     add_p = sub.add_parser('add', help='add a task'); add_p.add_argument('text'); add_p.add_argument('--backend', choices=['json','sqlite'])
+    add_p.add_argument('--priority', type=int, help='priority 1-5 (default 3)')
+    add_p.add_argument('--tags', help='comma-separated tags, e.g. "planning,sprint"')
     edit_p = sub.add_parser('edit', help='edit a task'); edit_p.add_argument('id', type=int); edit_p.add_argument('text'); edit_p.add_argument('--backend', choices=['json','sqlite'])
     list_p = sub.add_parser('list', help='list tasks (dashboard)'); list_p.add_argument('--backend', choices=['json','sqlite'])
     describe_p = sub.add_parser('describe', help='add a detail bullet to a task'); describe_p.add_argument('id', type=int); describe_p.add_argument('detail', nargs='+')
@@ -47,10 +49,15 @@ def build_parser():
     dash_p = sub.add_parser('dashboard', help='show dashboard summary')
     dash_p.add_argument('--backend', choices=['json','sqlite'])
     dash_p.add_argument('--interactive', action='store_true', help='open interactive TUI dashboard')
+    sub.add_parser('review', help='daily review: show tasks and notes added today')
     # notes command group: usage examples: notes add <text> | notes list | notes describe <n> <detail> | notes delete <n> | notes search <query>
     notes_p = sub.add_parser('notes', help='manage notes (add/list/search/describe/delete)')
     notes_p.add_argument('subcmd', nargs='?', help='notes subcommand (add|list|search|describe|delete)')
     notes_p.add_argument('rest', nargs=argparse.REMAINDER)
+    export_p = sub.add_parser('export', help='export tasks and notes to JSON')
+    export_p.add_argument('path', help='output file path')
+    import_p = sub.add_parser('import', help='import tasks and notes from JSON')
+    import_p.add_argument('path', help='input file path')
     sub.add_parser('home', help='show a friendly home screen with quick commands')
     setup_p = sub.add_parser('setup-llm', help='configure OpenAI API key for LLM usage (stores in OS keyring)')
     setup_p.add_argument('--remove', action='store_true', help='remove stored API key')
@@ -86,7 +93,19 @@ def main(argv=None):
     cmd = args.command
     # note: removed ls/db/complete aliases per user request
     if cmd == 'add':
-        t = tm.add(args.text); say(f"added task {t.id}: {t.text}", style='cyan')
+        # parse priority and tags
+        prio = 3
+        if getattr(args, 'priority', None) is not None:
+            try:
+                prio = int(args.priority)
+                if prio < 1 or prio > 5:
+                    raise ValueError()
+            except Exception:
+                say('Priority must be an integer between 1 and 5', style='red'); return 1
+        tags = []
+        if getattr(args, 'tags', None):
+            tags = [t.strip() for t in args.tags.split(',') if t.strip()]
+        t = tm.add(args.text, priority=prio, tags=tags); say(f"added task {t.id}: {t.text}", style='cyan')
     elif cmd == 'edit':
         # interpret numeric id as list-number (1-based); fail if out of range
         try:
@@ -354,6 +373,91 @@ def main(argv=None):
         else:
             from .dashboard import show_dashboard
             show_dashboard(tm.list(), dm.list(), agent)
+    elif cmd == 'review':
+        # Daily review: show tasks and notes added today
+        from datetime import datetime, timezone, date
+        from .utils import truncate
+        from .storage import list_notes
+
+        today = date.today()
+        tasks_today = []
+        for t in tm.list():
+            try:
+                created_dt = datetime.fromisoformat(t.created)
+                if created_dt.date() == today:
+                    tasks_today.append(t)
+            except Exception:
+                continue
+
+        notes = list_notes(args.backend or 'json', os.getcwd())
+        notes_today = []
+        for n in notes:
+            try:
+                nd = datetime.fromisoformat(n.created)
+                if nd.date() == today:
+                    notes_today.append(n)
+            except Exception:
+                continue
+
+        say(f"Tasks added today: {len(tasks_today)}")
+        for t in tasks_today[:10]:
+            say(f" - {truncate(t.text, 70)}")
+        say(f"Notes added today: {len(notes_today)}")
+        for n in notes_today[:10]:
+            say(f" - {truncate(n.text, 70)}")
+    elif cmd == 'export':
+        out_path = args.path
+        import json
+        base = os.getcwd()
+        data = {
+            'tasks': [t.to_dict() for t in tm.list()],
+            'notes': []
+        }
+        from .storage import list_notes
+        notes = list_notes(args.backend or 'json', base)
+        data['notes'] = [n.to_dict() for n in notes]
+        try:
+            with open(out_path, 'w', encoding='utf-8') as fh:
+                json.dump(data, fh, indent=2)
+            say(f'Exported to {out_path}', style='green')
+        except Exception as e:
+            say(f'Failed to export: {e}', style='red')
+    elif cmd == 'import':
+        in_path = args.path
+        import json
+        base = os.getcwd()
+        if not os.path.exists(in_path):
+            say('Import file not found', style='red'); return 1
+        try:
+            with open(in_path, 'r', encoding='utf-8') as fh:
+                data = json.load(fh)
+        except Exception as e:
+            say(f'Failed to read import file: {e}', style='red'); return 1
+        # Import tasks: append using TaskManager.add to ensure IDs managed
+        tasks_in = data.get('tasks', [])
+        for t in tasks_in:
+            try:
+                pr = int(t.get('priority', 3))
+            except Exception:
+                pr = 3
+            tags = t.get('tags', []) or []
+            newt = tm.add(t.get('text', ''), priority=pr, tags=tags)
+            # add details if present
+            for d in t.get('details', []):
+                tm.add_detail(newt.id, d)
+        # Import notes: use add_note then update details via store
+        from .storage import add_note, make_note_store
+        notes_in = data.get('notes', [])
+        for n in notes_in:
+            nn = add_note(args.backend or 'json', base, n.get('text', ''))
+            if n.get('details'):
+                nn.details = n.get('details', [])
+                store = make_note_store(args.backend or 'json', base)
+                try:
+                    store.update(nn)
+                except Exception:
+                    pass
+        say('Import complete', style='green')
     elif cmd == 'home':
         say('PKMS Home — quick commands', style='bold')
         say('Add, manage, and ask about tasks — concise one-line help:')

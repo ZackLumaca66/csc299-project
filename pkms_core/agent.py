@@ -1,6 +1,8 @@
 from __future__ import annotations
 from typing import List, Optional
+from datetime import datetime, timezone
 from .models import Task, Document
+from .utils import truncate
 
 _VERBS = {"add","create","implement","write","refactor","plan","review","test","fix","update","remove","design"}
 
@@ -52,6 +54,30 @@ class Agent:
         incomplete = len([t for t in tasks if not t.completed])
         completed = total - incomplete
         advice.append(f"Tasks: {incomplete} open / {completed} done (total {total})")
+        # High-focus tasks: priority >=4 and not completed
+        high_focus = [t for t in tasks if getattr(t, 'priority', 3) >= 4 and not t.completed]
+        high_focus = sorted(high_focus, key=lambda t: (-getattr(t, 'priority', 3), t.id))[:3]
+        if high_focus:
+            advice.append("High focus: " + "; ".join(truncate(t.text, 60) for t in high_focus))
+
+        # Refinement candidates: priority >=3 and no details
+        refinement = [t for t in tasks if getattr(t, 'priority', 3) >= 3 and not getattr(t, 'details', []) and not t.completed]
+        if refinement:
+            advice.append("Refine: " + "; ".join(truncate(t.text, 60) for t in refinement[:3]))
+
+        # Stale tasks: older than 14 days
+        stale = []
+        for t in tasks:
+            try:
+                created = datetime.fromisoformat(t.created)
+                age_days = (datetime.now(timezone.utc) - created).days
+                if age_days > 14 and not t.completed:
+                    stale.append(t)
+            except Exception:
+                continue
+        if stale:
+            advice.append(f"Stale: {len(stale)} tasks older than 14 days.")
+
         # Identify long tasks (heuristic: > 12 words) as candidates for breaking down
         long_tasks = [t for t in tasks if len(t.text.split()) > 12 and not t.completed]
         if long_tasks:

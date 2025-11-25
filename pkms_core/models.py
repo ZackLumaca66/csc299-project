@@ -9,6 +9,8 @@ class Task:
     created: str
     completed: bool = False
     details: List[str] = field(default_factory=list)
+    priority: int = 3
+    tags: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict:
         return asdict(self)
