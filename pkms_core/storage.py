@@ -1,6 +1,7 @@
 from __future__ import annotations
 import json, os, sqlite3
 from typing import List, Optional
+from .utils import map_display_index
 from dataclasses import asdict
 from .models import Task, Document, Note
 
@@ -365,11 +366,7 @@ def make_note_store(kind: str, base_dir: str):
 
 
 ### Outward-facing helpers for notes (backend dispatch)
-def _map_display_index_to_id(items: List, display_index: int):
-    # display_index is 1-based
-    if display_index <= 0 or display_index > len(items):
-        raise IndexError('display index out of range')
-    return items[display_index-1].id
+# Use map_display_index from pkms_core.utils for mapping 1-based display indexes to ids
 
 def list_notes(backend: str, base_dir: str) -> List[Note]:
     store = make_note_store(backend, base_dir)
@@ -387,7 +384,7 @@ def add_note(backend: str, base_dir: str, text: str) -> Note:
 
 def describe_note(backend: str, base_dir: str, display_index: int, detail: str) -> None:
     notes = list_notes(backend, base_dir)
-    note_id = _map_display_index_to_id(notes, display_index)
+    note_id = map_display_index(notes, display_index)
     store = make_note_store(backend, base_dir)
     # find note modify then update
     for n in notes:
@@ -399,7 +396,7 @@ def describe_note(backend: str, base_dir: str, display_index: int, detail: str) 
 
 def delete_note(backend: str, base_dir: str, display_index: int) -> bool:
     notes = list_notes(backend, base_dir)
-    note_id = _map_display_index_to_id(notes, display_index)
+    note_id = map_display_index(notes, display_index)
     store = make_note_store(backend, base_dir)
     return store.delete(note_id)
 
@@ -413,7 +410,7 @@ def search_notes(backend: str, base_dir: str, query: str) -> List[Note]:
 
 def get_note_by_display_index(backend: str, base_dir: str, display_index: int) -> Note:
     notes = list_notes(backend, base_dir)
-    note_id = _map_display_index_to_id(notes, display_index)
+    note_id = map_display_index(notes, display_index)
     for n in notes:
         if n.id == note_id:
             return n

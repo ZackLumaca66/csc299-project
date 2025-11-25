@@ -3,6 +3,7 @@ import json, os, sqlite3
 from typing import List, Optional
 from dataclasses import asdict
 from .models import Task, Document, Note
+from .utils import map_display_index
 
 class TaskStore:
     def load(self) -> List[Task]: raise NotImplementedError
@@ -171,15 +172,21 @@ def add_note(backend: str, base_dir: str, text: str):
 
 def describe_note(backend: str, base_dir: str, display_index: int, detail: str):
     notes = list_notes(backend, base_dir)
-    if display_index<=0 or display_index>len(notes): raise IndexError('out of range')
-    n = notes[display_index-1]
-    n.details.append(detail)
-    make_note_store(backend, base_dir).update(n)
+    note_id = map_display_index(notes, display_index)
+    # find and update
+    for n in notes:
+        if n.id == note_id:
+            n.details.append(detail)
+            make_note_store(backend, base_dir).update(n)
+            return
+    raise KeyError('note not found')
 
 def delete_note(backend: str, base_dir: str, display_index: int):
     notes = list_notes(backend, base_dir)
-    if display_index<=0 or display_index>len(notes): return False
-    nid = notes[display_index-1].id
+    try:
+        nid = map_display_index(notes, display_index)
+    except IndexError:
+        return False
     return make_note_store(backend, base_dir).delete(nid)
 
 def search_notes(backend: str, base_dir: str, query: str):
@@ -188,5 +195,8 @@ def search_notes(backend: str, base_dir: str, query: str):
 
 def get_note_by_display_index(backend: str, base_dir: str, display_index: int):
     notes = list_notes(backend, base_dir)
-    if display_index<=0 or display_index>len(notes): raise IndexError('out of range')
-    return notes[display_index-1]
+    note_id = map_display_index(notes, display_index)
+    for n in notes:
+        if n.id == note_id:
+            return n
+    raise KeyError('note not found')
