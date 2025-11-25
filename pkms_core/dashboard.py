@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import List
 from .models import Task, Document
 from .agent import Agent
+import os
 
 def build_plain(tasks: List[Task], docs: List[Document], agent: Agent) -> str:
     lines = []
@@ -11,6 +12,17 @@ def build_plain(tasks: List[Task], docs: List[Document], agent: Agent) -> str:
         lines.append(f" {i}. [{'x' if t.completed else ' '}] {t.text}")
         for d in getattr(t, 'details', [])[:10]:
             lines.append(f"    - {d}")
+    # notes summary (best-effort)
+    try:
+        from .storage import list_notes
+        notes = list_notes('json', os.getcwd())
+        if notes:
+            recent = '; '.join([n.text.replace('\n',' ')[:60] for n in notes[-2:]])
+            lines.append(f"Notes: {len(notes)} (recent: {recent})")
+        else:
+            lines.append("Notes: 0")
+    except Exception:
+        pass
     return "\n".join(lines)
 
 def show_dashboard(tasks: List[Task], docs: List[Document], agent: Agent, tasks_only: bool = False) -> None:
@@ -32,6 +44,17 @@ def show_dashboard(tasks: List[Task], docs: List[Document], agent: Agent, tasks_
                 for d in details[:3]:
                     console.print(f"   • {d}")
         console.print(task_table)
+        # Notes summary (best-effort using JSON backend in repo root)
+        try:
+            from .storage import list_notes
+            notes = list_notes('json', os.getcwd())
+            if notes:
+                recent = '; '.join([n.text.replace('\n',' ')[:60] for n in notes[-2:]])
+                console.print(f"Notes: {len(notes)} (recent: {recent})")
+            else:
+                console.print("Notes: 0")
+        except Exception:
+            pass
         return
     except Exception:
         print(build_plain(tasks, docs, agent))

@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1,
+    "text": "Write README for project",
+    "created": "2025-11-25T19:34:33.743256+00:00",
+    "completed": false,
+    "details": []
+  },
+  {
+    "id": 2,
+    "text": "Refactor storage layer to use sqlite by default",
+    "created": "2025-11-25T19:34:33.743695+00:00",
+    "completed": false,
+    "details": []
+  }
+]

@@ -129,5 +129,41 @@ def demo():
         history.save()
 
 
+def demo_notes_snippet():
+    """Small non-interactive snippet demonstrating notes usage in demo."""
+    base = os.getcwd()
+    demo_dir = os.path.join(base, 'app_data')
+    os.makedirs(demo_dir, exist_ok=True)
+    print('\n--- Notes Demo Snippet ---')
+    # create a simple mock LLM agent for the snippet
+    from pkms_core.llm_mock import MockLLM
+    from pkms_core.agent import Agent
+    from pkms_core.storage import add_note, list_notes
+    from pkms_core.core import TaskManager, DocumentManager
+
+    llm = MockLLM()
+    agent_local = Agent(llm=llm)
+    n = add_note('json', base, 'Capture demo note: prioritize tests')
+    print(f'Created note {n.id}: {n.text}')
+    notes = list_notes('json', base)
+    print(f'Notes count: {len(notes)}; recent: {notes[-1].text[:80] if notes else ""}')
+    # show advise with note context by starting chat engine briefly
+    tm = TaskManager(store=JsonTaskStore(os.path.join(demo_dir, 'tasks.json')))
+    dm = DocumentManager(store=DocumentStore(os.path.join(demo_dir, 'docs.json')))
+    history = ChatHistory.load()
+    engine = ChatEngine(agent_local, tm, dm, history)
+    try:
+        engine.select_note(n.id)
+        resp = engine.handle_message('advise')
+        print('\nAdvise output (with note context):')
+        print(resp)
+    except Exception as e:
+        print('Notes demo failed:', e)
+
+
 if __name__ == '__main__':
     demo()
+    try:
+        demo_notes_snippet()
+    except Exception:
+        pass

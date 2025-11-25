@@ -37,6 +37,7 @@ def build_parser():
     chat_p = sub.add_parser('chat', help='chat with the advisor (single message or interactive)')
     chat_p.add_argument('message', nargs='*', help='optional message; if omitted runs interactive chat')
     chat_p.add_argument('--task-id', type=int, help='task id to attach to this chat session')
+    chat_p.add_argument('--note-id', type=int, help='note id to attach to this chat session')
     chat_p.add_argument('--select', action='store_true', help='prompt to select a task before chatting')
     chat_p.add_argument('--interactive', action='store_true', help='force interactive chat session')
     chat_p.add_argument('--backend', choices=['json','sqlite'])
@@ -46,6 +47,10 @@ def build_parser():
     dash_p = sub.add_parser('dashboard', help='show dashboard summary')
     dash_p.add_argument('--backend', choices=['json','sqlite'])
     dash_p.add_argument('--interactive', action='store_true', help='open interactive TUI dashboard')
+    # notes command group: usage examples: notes add <text> | notes list | notes describe <n> <detail> | notes delete <n> | notes search <query>
+    notes_p = sub.add_parser('notes', help='manage notes (add/list/search/describe/delete)')
+    notes_p.add_argument('subcmd', nargs='?', help='notes subcommand (add|list|search|describe|delete)')
+    notes_p.add_argument('rest', nargs=argparse.REMAINDER)
     sub.add_parser('home', help='show a friendly home screen with quick commands')
     setup_p = sub.add_parser('setup-llm', help='configure OpenAI API key for LLM usage (stores in OS keyring)')
     setup_p.add_argument('--remove', action='store_true', help='remove stored API key')
@@ -127,6 +132,54 @@ def main(argv=None):
             say('invalid id', style='red'); return 0
         t = tm.add_detail(real_id, text)
         say(f"added detail to {supplied}" if t else "task not found")
+    elif cmd == 'notes':
+        # notes subcommand handling: args.subcmd, args.rest
+        subcmd = getattr(args, 'subcmd', None)
+        rest = getattr(args, 'rest', []) or []
+        backend = getattr(args, 'backend', 'json')
+        base = os.getcwd()
+        # lazy import to avoid circulars
+        from .storage import list_notes, add_note, describe_note, delete_note, search_notes
+        if not subcmd or subcmd == 'list':
+            notes = list_notes(backend, base)
+            if not notes:
+                say('No notes found.', style='yellow')
+            for idx, n in enumerate(notes, start=1):
+                txt = (n.text or '').replace('\n',' ')[:80]
+                say(f"[{idx}] {txt} ({len(getattr(n,'details',[]))} details)")
+            return 0
+        if subcmd == 'add':
+            text = ' '.join(rest).strip()
+            if not text:
+                say('No text provided for note.', style='red'); return 0
+            n = add_note(backend, base, text)
+            say(f'Note added {n.id}: {n.text}')
+            return 0
+        if subcmd == 'search':
+            query = ' '.join(rest).strip()
+            res = search_notes(backend, base, query)
+            for idx, n in enumerate(res, start=1): say(f"[{idx}] {n.text[:80]}")
+            return 0
+        if subcmd == 'describe':
+            try:
+                idx = int(rest[0]); detail = ' '.join(rest[1:]).strip()
+            except Exception:
+                say('Usage: notes describe <n> <detail>', style='red'); return 0
+            try:
+                describe_note(backend, base, idx, detail)
+                say('Detail added.')
+            except Exception:
+                say('Note not found', style='red')
+            return 0
+        if subcmd == 'delete':
+            try:
+                idx = int(rest[0])
+            except Exception:
+                say('Usage: notes delete <n>', style='red'); return 0
+            ok = delete_note(backend, base, idx)
+            say('Deleted.' if ok else 'Not found')
+            return 0
+        say('Unknown notes subcommand', style='red')
     elif cmd == 'complete':
         try:
             supplied = int(args.id)
@@ -200,6 +253,20 @@ def main(argv=None):
                                     say('not found', style='red')
                         except Exception:
                             say('invalid selection', style='red')
+        # handle note selection flag
+        if getattr(args, 'note_id', None) is not None:
+            try:
+                supplied = int(args.note_id)
+                # treat provided note_id as list-number (1-based)
+                from .storage import list_notes
+                notes = list_notes(args.backend or 'json', os.getcwd())
+                if 1 <= supplied <= len(notes):
+                    ok = chat_engine.select_note(notes[supplied-1].id)
+                    say(f"Selected note {supplied}", style='cyan')
+                else:
+                    say(f"Note {args.note_id} not found", style='red')
+            except Exception:
+                say('invalid note id', style='red')
 
         # single-message mode: accept only advise commands
         if msg and not args.interactive:
@@ -295,6 +362,7 @@ def main(argv=None):
         say('  edit <n> <text>          — edit task by list-number (1-based)')
         say('  describe <n> <detail>    — add a bullet/detail to a task')
         say('  delete <n>               — remove a task by list-number')
+        say('  notes <subcmd>           — manage notes: add/list/search/describe/delete')
         say('  list                    — show tasks-only dashboard')
         say('  dashboard [--interactive]— show dashboard; --interactive launches TUI when available')
         say('  chat [--task-id <n>]     — chat with the agent (advise commands only in single-message mode)')
@@ -389,6 +457,11 @@ def main(argv=None):
                 files_to_remove.append(dm.store.path)
         except Exception:
             pass
+        # Known note store locations
+        files_to_remove.append(os.path.join(cwd, 'notes.json'))
+        files_to_remove.append(os.path.join(cwd, 'app_data', 'notes.json'))
+        files_to_remove.append(os.path.join(cwd, 'app_data', 'notes.db'))
+        files_to_remove.append(os.path.join(cwd, 'data_pkms', 'notes.json'))
 
         if not getattr(args, 'yes', False):
             confirm = input("This will permanently delete app data, legacy stores, and chat history. Type YES to confirm: ").strip()
