@@ -1,9 +1,0 @@
-{
-    "life": 100,
-    "tasks": [
-        {
-            "text": "final-ci-task",
-            "done": true
-        }
-    ]
-}
