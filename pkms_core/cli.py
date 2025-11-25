@@ -49,6 +49,7 @@ def build_parser():
     dash_p = sub.add_parser('dashboard', help='show dashboard summary')
     dash_p.add_argument('--backend', choices=['json','sqlite'])
     dash_p.add_argument('--interactive', action='store_true', help='open interactive TUI dashboard')
+    sub.add_parser('review', help='daily review: show tasks and notes added today')
     # notes command group: usage examples: notes add <text> | notes list | notes describe <n> <detail> | notes delete <n> | notes search <query>
     notes_p = sub.add_parser('notes', help='manage notes (add/list/search/describe/delete)')
     notes_p.add_argument('subcmd', nargs='?', help='notes subcommand (add|list|search|describe|delete)')
@@ -368,6 +369,38 @@ def main(argv=None):
         else:
             from .dashboard import show_dashboard
             show_dashboard(tm.list(), dm.list(), agent)
+    elif cmd == 'review':
+        # Daily review: show tasks and notes added today
+        from datetime import datetime, timezone, date
+        from .utils import truncate
+        from .storage import list_notes
+
+        today = date.today()
+        tasks_today = []
+        for t in tm.list():
+            try:
+                created_dt = datetime.fromisoformat(t.created)
+                if created_dt.date() == today:
+                    tasks_today.append(t)
+            except Exception:
+                continue
+
+        notes = list_notes(args.backend or 'json', os.getcwd())
+        notes_today = []
+        for n in notes:
+            try:
+                nd = datetime.fromisoformat(n.created)
+                if nd.date() == today:
+                    notes_today.append(n)
+            except Exception:
+                continue
+
+        say(f"Tasks added today: {len(tasks_today)}")
+        for t in tasks_today[:10]:
+            say(f" - {truncate(t.text, 70)}")
+        say(f"Notes added today: {len(notes_today)}")
+        for n in notes_today[:10]:
+            say(f" - {truncate(n.text, 70)}")
     elif cmd == 'home':
         say('PKMS Home — quick commands', style='bold')
         say('Add, manage, and ask about tasks — concise one-line help:')
