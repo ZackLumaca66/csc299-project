@@ -54,6 +54,10 @@ def build_parser():
     notes_p = sub.add_parser('notes', help='manage notes (add/list/search/describe/delete)')
     notes_p.add_argument('subcmd', nargs='?', help='notes subcommand (add|list|search|describe|delete)')
     notes_p.add_argument('rest', nargs=argparse.REMAINDER)
+    export_p = sub.add_parser('export', help='export tasks and notes to JSON')
+    export_p.add_argument('path', help='output file path')
+    import_p = sub.add_parser('import', help='import tasks and notes from JSON')
+    import_p.add_argument('path', help='input file path')
     sub.add_parser('home', help='show a friendly home screen with quick commands')
     setup_p = sub.add_parser('setup-llm', help='configure OpenAI API key for LLM usage (stores in OS keyring)')
     setup_p.add_argument('--remove', action='store_true', help='remove stored API key')
@@ -401,6 +405,59 @@ def main(argv=None):
         say(f"Notes added today: {len(notes_today)}")
         for n in notes_today[:10]:
             say(f" - {truncate(n.text, 70)}")
+    elif cmd == 'export':
+        out_path = args.path
+        import json
+        base = os.getcwd()
+        data = {
+            'tasks': [t.to_dict() for t in tm.list()],
+            'notes': []
+        }
+        from .storage import list_notes
+        notes = list_notes(args.backend or 'json', base)
+        data['notes'] = [n.to_dict() for n in notes]
+        try:
+            with open(out_path, 'w', encoding='utf-8') as fh:
+                json.dump(data, fh, indent=2)
+            say(f'Exported to {out_path}', style='green')
+        except Exception as e:
+            say(f'Failed to export: {e}', style='red')
+    elif cmd == 'import':
+        in_path = args.path
+        import json
+        base = os.getcwd()
+        if not os.path.exists(in_path):
+            say('Import file not found', style='red'); return 1
+        try:
+            with open(in_path, 'r', encoding='utf-8') as fh:
+                data = json.load(fh)
+        except Exception as e:
+            say(f'Failed to read import file: {e}', style='red'); return 1
+        # Import tasks: append using TaskManager.add to ensure IDs managed
+        tasks_in = data.get('tasks', [])
+        for t in tasks_in:
+            try:
+                pr = int(t.get('priority', 3))
+            except Exception:
+                pr = 3
+            tags = t.get('tags', []) or []
+            newt = tm.add(t.get('text', ''), priority=pr, tags=tags)
+            # add details if present
+            for d in t.get('details', []):
+                tm.add_detail(newt.id, d)
+        # Import notes: use add_note then update details via store
+        from .storage import add_note, make_note_store
+        notes_in = data.get('notes', [])
+        for n in notes_in:
+            nn = add_note(args.backend or 'json', base, n.get('text', ''))
+            if n.get('details'):
+                nn.details = n.get('details', [])
+                store = make_note_store(args.backend or 'json', base)
+                try:
+                    store.update(nn)
+                except Exception:
+                    pass
+        say('Import complete', style='green')
     elif cmd == 'home':
         say('PKMS Home — quick commands', style='bold')
         say('Add, manage, and ask about tasks — concise one-line help:')
