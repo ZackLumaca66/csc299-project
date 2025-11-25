@@ -12,8 +12,9 @@ class TaskManager:
         self.tasks: List[Task] = self.store.load()
         self._next_id = max([t.id for t in self.tasks], default=0) + 1
         self.on_toggle = on_toggle
-    def add(self, text: str) -> Task:
-        t = Task(id=self._next_id, text=text, created=datetime.now(timezone.utc).isoformat(), completed=False, details=[])
+    def add(self, text: str, priority: int = 3, tags: Optional[List[str]] = None) -> Task:
+        tags = tags or []
+        t = Task(id=self._next_id, text=text, created=datetime.now(timezone.utc).isoformat(), completed=False, details=[], priority=priority, tags=tags)
         self._next_id += 1
         self.tasks.append(t)
         try: self.store.add(t)

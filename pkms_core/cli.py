@@ -24,6 +24,8 @@ def build_parser():
     sub = p.add_subparsers(dest='command')
     # task commands
     add_p = sub.add_parser('add', help='add a task'); add_p.add_argument('text'); add_p.add_argument('--backend', choices=['json','sqlite'])
+    add_p.add_argument('--priority', type=int, help='priority 1-5 (default 3)')
+    add_p.add_argument('--tags', help='comma-separated tags, e.g. "planning,sprint"')
     edit_p = sub.add_parser('edit', help='edit a task'); edit_p.add_argument('id', type=int); edit_p.add_argument('text'); edit_p.add_argument('--backend', choices=['json','sqlite'])
     list_p = sub.add_parser('list', help='list tasks (dashboard)'); list_p.add_argument('--backend', choices=['json','sqlite'])
     describe_p = sub.add_parser('describe', help='add a detail bullet to a task'); describe_p.add_argument('id', type=int); describe_p.add_argument('detail', nargs='+')
@@ -86,7 +88,19 @@ def main(argv=None):
     cmd = args.command
     # note: removed ls/db/complete aliases per user request
     if cmd == 'add':
-        t = tm.add(args.text); say(f"added task {t.id}: {t.text}", style='cyan')
+        # parse priority and tags
+        prio = 3
+        if getattr(args, 'priority', None) is not None:
+            try:
+                prio = int(args.priority)
+                if prio < 1 or prio > 5:
+                    raise ValueError()
+            except Exception:
+                say('Priority must be an integer between 1 and 5', style='red'); return 1
+        tags = []
+        if getattr(args, 'tags', None):
+            tags = [t.strip() for t in args.tags.split(',') if t.strip()]
+        t = tm.add(args.text, priority=prio, tags=tags); say(f"added task {t.id}: {t.text}", style='cyan')
     elif cmd == 'edit':
         # interpret numeric id as list-number (1-based); fail if out of range
         try:

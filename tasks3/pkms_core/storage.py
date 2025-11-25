@@ -18,6 +18,7 @@ class JsonTaskStore(TaskStore):
         if os.path.exists(self.path):
             try:
                 with open(self.path,'r',encoding='utf-8') as fh: data=json.load(fh)
+                # Backfill missing fields (priority, tags) are handled by Task defaults
                 return [Task(**t) for t in data]
             except Exception: return []
         return []
@@ -42,22 +43,36 @@ class SqliteTaskStore(TaskStore):
     def _conn(self): return sqlite3.connect(self.path)
     def _ensure(self):
         with self._conn() as c:
-            c.execute("CREATE TABLE IF NOT EXISTS tasks(id INTEGER PRIMARY KEY, text TEXT, created TEXT, completed INTEGER)")
+            c.execute("CREATE TABLE IF NOT EXISTS tasks(id INTEGER PRIMARY KEY, text TEXT, created TEXT, completed INTEGER, details TEXT, priority INTEGER DEFAULT 3, tags TEXT DEFAULT '[]')")
     def load(self)->List[Task]:
         with self._conn() as c:
-            rows=c.execute("SELECT id,text,created,completed FROM tasks ORDER BY id ASC").fetchall()
-        return [Task(id=r[0], text=r[1], created=r[2], completed=bool(r[3])) for r in rows]
+            rows=c.execute("SELECT id,text,created,completed,details,priority,tags FROM tasks ORDER BY id ASC").fetchall()
+        out = []
+        import json as _json
+        for r in rows:
+            details = []
+            if r[4]:
+                try: details = _json.loads(r[4])
+                except Exception: details = []
+            try: tags = _json.loads(r[6]) if r[6] else []
+            except Exception: tags = []
+            priority = int(r[5]) if r[5] is not None else 3
+            out.append(Task(id=r[0], text=r[1], created=r[2], completed=bool(r[3]), details=details, priority=priority, tags=tags))
+        return out
     def save_all(self, tasks: List[Task])->None:
         with self._conn() as c:
             c.execute("DELETE FROM tasks")
+            import json as _json
             for t in tasks:
-                c.execute("INSERT INTO tasks(id,text,created,completed) VALUES(?,?,?,?)", (t.id,t.text,t.created,int(t.completed)))
+                c.execute("INSERT INTO tasks(id,text,created,completed,details,priority,tags) VALUES(?,?,?,?,?,?,?)", (t.id,t.text,t.created,int(t.completed),_json.dumps(getattr(t,'details',[])), int(getattr(t,'priority',3)), _json.dumps(getattr(t,'tags',[]))))
     def add(self, task: Task)->None:
         with self._conn() as c:
-            c.execute("INSERT INTO tasks(id,text,created,completed) VALUES(?,?,?,?)", (task.id,task.text,task.created,int(task.completed)))
+            import json as _json
+            c.execute("INSERT INTO tasks(id,text,created,completed,details,priority,tags) VALUES(?,?,?,?,?,?,?)", (task.id,task.text,task.created,int(task.completed),_json.dumps(getattr(task,'details',[])), int(getattr(task,'priority',3)), _json.dumps(getattr(task,'tags',[]))))
     def update(self, task: Task)->None:
         with self._conn() as c:
-            c.execute("UPDATE tasks SET text=?, created=?, completed=? WHERE id=?", (task.text,task.created,int(task.completed),task.id))
+            import json as _json
+            c.execute("UPDATE tasks SET text=?, created=?, completed=?, details=?, priority=?, tags=? WHERE id=?", (task.text,task.created,int(task.completed),_json.dumps(getattr(task,'details',[])), int(getattr(task,'priority',3)), _json.dumps(getattr(task,'tags',[])), task.id))
     def delete(self, task_id: int)->bool:
         with self._conn() as c:
             cur=c.execute("DELETE FROM tasks WHERE id=?", (task_id,))
