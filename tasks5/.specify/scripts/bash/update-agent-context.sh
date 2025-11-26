@@ -77,6 +77,17 @@ Q_FILE="$REPO_ROOT/AGENTS.md"
 # Template file
 TEMPLATE_FILE="$REPO_ROOT/.specify/templates/agent-file-template.md"
 
+# Repo-local sed tool helper (fallback to tasks5 path if needed)
+SED_TOOL="$REPO_ROOT/scripts/pytools/sed_compat.py"
+if [[ ! -f "$SED_TOOL" ]] && [[ -f "$REPO_ROOT/tasks5/scripts/pytools/sed_compat.py" ]]; then
+    SED_TOOL="$REPO_ROOT/tasks5/scripts/pytools/sed_compat.py"
+fi
+
+# If template missing at repo root, fall back to tasks5 template location
+if [[ ! -f "$TEMPLATE_FILE" ]] && [[ -f "$REPO_ROOT/tasks5/.specify/templates/agent-file-template.md" ]]; then
+    TEMPLATE_FILE="$REPO_ROOT/tasks5/.specify/templates/agent-file-template.md"
+fi
+
 # Global variables for parsed plan data
 NEW_LANG=""
 NEW_FRAMEWORK=""
