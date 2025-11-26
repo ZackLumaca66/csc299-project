@@ -300,11 +300,20 @@ def make_note_store(kind: str, base_dir: str):
                     id INTEGER PRIMARY KEY,
                     text TEXT,
                     created TEXT,
-                    details TEXT
+                    details TEXT,
+                    task_id INTEGER
                 )""")
+                # Ensure task_id column exists for older DBs
+                cur = conn.execute("PRAGMA table_info(notes)").fetchall()
+                cols = [c[1] for c in cur]
+                if 'task_id' not in cols:
+                    try:
+                        conn.execute("ALTER TABLE notes ADD COLUMN task_id INTEGER")
+                    except Exception:
+                        pass
         def load(self) -> List[Note]:
             with self._conn() as conn:
-                rows = conn.execute("SELECT id,text,created,details FROM notes ORDER BY id ASC").fetchall()
+                rows = conn.execute("SELECT id,text,created,details,task_id FROM notes ORDER BY id ASC").fetchall()
             import json as _json
             result: List[Note] = []
             for r in rows:
@@ -314,25 +323,27 @@ def make_note_store(kind: str, base_dir: str):
                         details = _json.loads(r[3])
                     except Exception:
                         details = []
-                result.append(Note(id=r[0], text=r[1], created=r[2], details=details))
+                # task_id may be NULL
+                task_id = r[4] if len(r) > 4 else None
+                result.append(Note(id=r[0], text=r[1], created=r[2], details=details, task_id=task_id))
             return result
         def save_all(self, notes: List[Note]) -> None:
             with self._conn() as conn:
                 conn.execute("DELETE FROM notes")
                 import json as _json
                 for n in notes:
-                    conn.execute("INSERT INTO notes(id,text,created,details) VALUES(?,?,?,?)",
-                                 (n.id, n.text, n.created, _json.dumps(getattr(n, 'details', []))),)
+                    conn.execute("INSERT INTO notes(id,text,created,details,task_id) VALUES(?,?,?,?,?)",
+                                 (n.id, n.text, n.created, _json.dumps(getattr(n, 'details', [])), getattr(n, 'task_id', None)),)
         def add(self, note: Note) -> None:
             with self._conn() as conn:
                 import json as _json
-                conn.execute("INSERT INTO notes(id,text,created,details) VALUES(?,?,?,?)",
-                             (note.id, note.text, note.created, _json.dumps(getattr(note, 'details', []))),)
+                conn.execute("INSERT INTO notes(id,text,created,details,task_id) VALUES(?,?,?,?,?)",
+                             (note.id, note.text, note.created, _json.dumps(getattr(note, 'details', [])), getattr(note, 'task_id', None)),)
         def update(self, note: Note) -> None:
             with self._conn() as conn:
                 import json as _json
-                conn.execute("UPDATE notes SET text=?, created=?, details=? WHERE id=?",
-                             (note.text, note.created, _json.dumps(getattr(note, 'details', [])), note.id))
+                conn.execute("UPDATE notes SET text=?, created=?, details=?, task_id=? WHERE id=?",
+                             (note.text, note.created, _json.dumps(getattr(note, 'details', [])), getattr(note, 'task_id', None), note.id))
         def delete(self, note_id: int) -> bool:
             with self._conn() as conn:
                 cur = conn.execute("DELETE FROM notes WHERE id=?", (note_id,))
@@ -353,8 +364,9 @@ def make_note_store(kind: str, base_dir: str):
             with conn:
                 for item in data:
                     details = _json.dumps(item.get('details', []))
-                    conn.execute("INSERT OR IGNORE INTO notes(id,text,created,details) VALUES(?,?,?,?)",
-                                 (item.get('id'), item.get('text'), item.get('created'), details),)
+                    task_id = item.get('task_id') if isinstance(item, dict) else None
+                    conn.execute("INSERT OR IGNORE INTO notes(id,text,created,details,task_id) VALUES(?,?,?,?,?)",
+                                 (item.get('id'), item.get('text'), item.get('created'), details, task_id),)
         except Exception:
             return
 
@@ -388,12 +400,12 @@ def list_notes(backend: str, base_dir: str) -> List[Note]:
     store = make_note_store(backend, base_dir)
     return store.load()
 
-def add_note(backend: str, base_dir: str, text: str) -> Note:
+def add_note(backend: str, base_dir: str, text: str, task_id: int = None) -> Note:
     notes = list_notes(backend, base_dir)
     next_id = (max((n.id for n in notes), default=0) + 1) if notes else 1
     from datetime import datetime, timezone
     created = datetime.now(timezone.utc).isoformat()
-    note = Note(id=next_id, text=text, created=created, details=[])
+    note = Note(id=next_id, text=text, created=created, details=[], task_id=task_id)
     store = make_note_store(backend, base_dir)
     store.add(note)
     return note

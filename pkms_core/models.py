@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, asdict, field
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 @dataclass
 class Task:
@@ -21,6 +21,7 @@ class Note:
     text: str
     created: str
     details: List[str] = field(default_factory=list)
+    task_id: Optional[int] = None
 
     def to_dict(self) -> Dict:
         return asdict(self)

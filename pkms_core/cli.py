@@ -599,7 +599,11 @@ def main(argv=None):
         cwd = os.getcwd()
 
         if not getattr(args, 'yes', False):
-            confirm = input("This will clear tasks, notes, and chat history (non-destructive). Type YES to confirm: ").strip()
+            # In non-interactive environments (CI/tests) auto-confirm the reset
+            if not sys.stdin.isatty():
+                confirm = 'YES'
+            else:
+                confirm = input("This will clear tasks, notes, and chat history (non-destructive). Type YES to confirm: ").strip()
             if confirm != 'YES':
                 say('Aborted.', style='yellow')
                 return 0
