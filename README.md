@@ -211,6 +211,110 @@ By default the project will create an `app_data/` and/or `data_pkms/` directory 
 The `reset` command empties these known stores (see `reset` docs above); it does not delete app directories or documents.
 
 ## Optional Extras
+
+## Full command examples
+
+The following examples show common workflows and illustrate flags and modal usage.
+
+- Add a task (default backend is JSON unless you pass `--backend sqlite`):
+
+```bash
+python -m pkms_core.cli add "Buy groceries"
+python -m pkms_core.cli add "Finish report" --priority 5 --tags "work,urgent"
+```
+
+- List tasks (dashboard):
+
+```bash
+python -m pkms_core.cli list
+python -m pkms_core.cli dashboard         # same, with optional --interactive
+python -m pkms_core.cli dashboard --interactive
+```
+
+- Edit and complete tasks (use list-number shown by `list`):
+
+```bash
+python -m pkms_core.cli edit 1 "Updated task text"
+python -m pkms_core.cli complete 1
+```
+
+- Describe (add a detail bullet) to a task:
+
+```bash
+python -m pkms_core.cli describe 1 "Research API rate-limits"
+```
+
+- Delete a task by list-number:
+
+```bash
+python -m pkms_core.cli delete 2
+```
+
+- Notes: add, list, view details, describe, search, delete
+
+```bash
+python -m pkms_core.cli notes add "Design ideas for landing page"
+python -m pkms_core.cli notes list
+python -m pkms_core.cli notes 1            # show details for note 1
+python -m pkms_core.cli notes 1 describe "Add wireframe links"
+python -m pkms_core.cli notes search landing
+python -m pkms_core.cli notes 1 delete
+```
+
+- Chat / advise usage
+
+```bash
+# Single-message, non-interactive advise
+python -m pkms_core.cli chat "advise"
+python -m pkms_core.cli chat "advise selected 1"
+
+# Interactive chat session (type: advise all | advise selected <n> | /exit)
+python -m pkms_core.cli chat --interactive
+
+# Start chat with a selected note or task (use list-number)
+python -m pkms_core.cli chat --task-id 1 --interactive
+python -m pkms_core.cli chat --note-id 1 advise
+```
+
+- Export / Import (create backups or migrate stores)
+
+```bash
+python -m pkms_core.cli export backup.json
+python -m pkms_core.cli import backup.json
+```
+
+- Reset (non-destructive):
+
+```bash
+# Use --yes in scripts/CI to skip confirmation prompt
+python -m pkms_core.cli reset --yes
+```
+
+- Review (daily summary):
+
+```bash
+python -m pkms_core.cli review
+```
+
+- Setup LLM API key (store/inspect/remove in OS keyring):
+
+```bash
+python -m pkms_core.cli setup-llm        # prompts for key (keyring required)
+python -m pkms_core.cli setup-llm --show
+python -m pkms_core.cli setup-llm --remove
+```
+
+- Interactive shell (quick REPL for commands + chat):
+
+```bash
+python -m pkms_core.cli shell
+# Inside: try `add <text>`, `list`, `advise`, `/select <n>`, `/exit`
+```
+
+Notes:
+- Prefer the module form `python -m pkms_core.cli` for portability across shells (Git Bash, PowerShell, cmd).
+- The repository contains top-level launchers `./pkms`, `pkms.bat`, and `pkms.ps1`. Use them if you added the repo to your PATH or prefer the convenience wrapper.
+
 - Small experimental TUI available via `dashboard --interactive` when Textual is installed
 - `tasks3/` contains older demos and experiments (kept as examples)
 
