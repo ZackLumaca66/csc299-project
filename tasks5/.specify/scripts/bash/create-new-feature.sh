@@ -162,7 +162,7 @@ check_existing_branches() {
 # Function to clean and format a branch name
 clean_branch_name() {
     local name="$1"
-    echo "$name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/-\+/-/g' | sed 's/^-//' | sed 's/-$//'
+    echo "$name" | tr '[:upper:]' '[:lower:]' | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/[^a-z0-9]/-/g" -e "s/-+/-/g" -e "s/^-//" -e "s/-$//"
 }
 
 # Resolve repository root. Prefer git information when available, but fall back
@@ -195,7 +195,7 @@ generate_branch_name() {
     local stop_words="^(i|a|an|the|to|for|of|in|on|at|by|with|from|is|are|was|were|be|been|being|have|has|had|do|does|did|will|would|should|could|can|may|might|must|shall|this|that|these|those|my|your|our|their|want|need|add|get|set)$"
     
     # Convert to lowercase and split into words
-    local clean_name=$(echo "$description" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/ /g')
+    local clean_name=$(echo "$description" | tr '[:upper:]' '[:lower:]' | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/[^a-z0-9]/ /g")
     
     # Filter words: remove stop words and words shorter than 3 chars (unless they're uppercase acronyms in original)
     local meaningful_words=()
@@ -270,7 +270,7 @@ if [ ${#BRANCH_NAME} -gt $MAX_BRANCH_LENGTH ]; then
     # Truncate suffix at word boundary if possible
     TRUNCATED_SUFFIX=$(echo "$BRANCH_SUFFIX" | cut -c1-$MAX_SUFFIX_LENGTH)
     # Remove trailing hyphen if truncation created one
-    TRUNCATED_SUFFIX=$(echo "$TRUNCATED_SUFFIX" | sed 's/-$//')
+    TRUNCATED_SUFFIX=$(echo "$TRUNCATED_SUFFIX" | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/-$//")
     
     ORIGINAL_BRANCH_NAME="$BRANCH_NAME"
     BRANCH_NAME="${FEATURE_NUM}-${TRUNCATED_SUFFIX}"
