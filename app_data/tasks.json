@@ -4,13 +4,26 @@
     "text": "Write README for project",
     "created": "2025-11-25T19:34:33.743256+00:00",
     "completed": false,
-    "details": []
+    "details": [],
+    "priority": 3,
+    "tags": []
   },
   {
     "id": 2,
     "text": "Refactor storage layer to use sqlite by default",
     "created": "2025-11-25T19:34:33.743695+00:00",
     "completed": false,
-    "details": []
+    "details": [],
+    "priority": 3,
+    "tags": []
+  },
+  {
+    "id": 3,
+    "text": "hello",
+    "created": "2025-11-26T00:44:32.338828+00:00",
+    "completed": false,
+    "details": [],
+    "priority": 3,
+    "tags": []
   }
 ]

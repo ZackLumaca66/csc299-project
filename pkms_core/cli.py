@@ -70,8 +70,8 @@ def build_parser():
     setup_p.add_argument('--remove', action='store_true', help='remove stored API key')
     setup_p.add_argument('--show', action='store_true', help='show whether a key is stored (masked)')
     # reset command: wipe app data
-    reset_p = sub.add_parser('reset', help='wipe all app data (tasks, docs, chat history)')
-    reset_p.add_argument('--yes', action='store_true', help='confirm destructive reset')
+    reset_p = sub.add_parser('reset', help='clear tasks, notes, and chat history (non-destructive)')
+    reset_p.add_argument('--yes', action='store_true', help='confirm reset (non-destructive)')
     sub.add_parser('instructions', help='show detailed instructions and examples for all commands')
     shell_p = sub.add_parser('shell', help='interactive shell (enter commands or chat messages)'); shell_p.add_argument('--backend', choices=['json','sqlite'])
     sub.add_parser('info', help='show environment and data paths')
@@ -88,29 +88,10 @@ def main(argv=None):
     llm = LLMAdapter()
     agent = Agent(llm=llm)
 
-    # If no subcommand was provided, display the `home` screen on first-run
-    # (no tasks, documents, or notes). Otherwise, show argparse help.
+    # If no subcommand was provided, treat it as 'home' by default so
+    # `python -m pkms_core.cli` behaves like `python -m pkms_core.cli home`.
     if not getattr(args, 'command', None):
-        from .storage import list_notes
-        base = os.getcwd()
-        try:
-            tasks = tm.list() or []
-        except Exception:
-            tasks = []
-        try:
-            docs = dm.list() or []
-        except Exception:
-            docs = []
-        try:
-            notes = list_notes(args.backend or 'json', base) or []
-        except Exception:
-            notes = []
-
-        if not tasks and not docs and not notes:
-            # treat as if the user asked for 'home'
-            args.command = 'home'
-        else:
-            parser.print_help(); return 0
+        args.command = 'home'
     # Only show LLM availability messages on verbose mode or when running chat/home/advise commands
     if args.verbose or args.command in {'chat', 'home', 'advise'}:
         if llm.available():
@@ -438,7 +419,12 @@ def main(argv=None):
         for t in tm.list():
             try:
                 created_dt = datetime.fromisoformat(t.created)
-                if created_dt.date() == today:
+                # Normalize to local date for comparison when timestamps are timezone-aware
+                if getattr(created_dt, 'tzinfo', None) is not None:
+                    created_date = created_dt.astimezone().date()
+                else:
+                    created_date = created_dt.date()
+                if created_date == today:
                     tasks_today.append(t)
             except Exception:
                 continue
@@ -448,7 +434,11 @@ def main(argv=None):
         for n in notes:
             try:
                 nd = datetime.fromisoformat(n.created)
-                if nd.date() == today:
+                if getattr(nd, 'tzinfo', None) is not None:
+                    n_date = nd.astimezone().date()
+                else:
+                    n_date = nd.date()
+                if n_date == today:
                     notes_today.append(n)
             except Exception:
                 continue
@@ -521,6 +511,8 @@ def main(argv=None):
         say('  describe <n> <detail>    — add a bullet/detail to a task')
         say('  delete <n>               — remove a task by list-number')
         say('  notes <n>                — manage notes: list/add/view/describe/delete')
+        say('  help                    — show argparse help (-h)')
+        say('  instructions            — show detailed usage and examples')
         say('  list                    — show tasks-only dashboard')
         say('  dashboard               — show dashboard summary')
         say('  complete <n>            — mark task completed (use list-number)')
@@ -528,7 +520,7 @@ def main(argv=None):
         say('  chat-history             — display saved chat history')
         say('  advise                   — compact productivity advice')
         say('  setup-llm                — store or remove OpenAI API key (use --show or --remove)')
-        say('  reset [--yes]            — DESTRUCTIVE: wipe persistent stores and chat history')
+        say('  reset [--yes]            — Clears tasks, notes, and chat history (non-destructive)')
     elif cmd == 'instructions':
         say('PKMS Instructions', style='bold')
         say('A brief command reference — one-line descriptions only.', style='cyan')
@@ -575,7 +567,7 @@ def main(argv=None):
         say('  Store, view, or remove your OpenAI API key in the OS keyring.')
 
         say('\nreset [--yes]')
-        say('  DESTRUCTIVE: remove all known persistent stores and chat history.')
+        say('  Note: `reset` now clears tasks, notes, and chat history without deleting app files or documents.')
 
         say('\nhome')
         say('  Print a short quick-reference of common commands.')
@@ -603,74 +595,50 @@ def main(argv=None):
         say(f"document store: {getattr(dstore, 'path', repr(dstore))}")
         say(f"active backend: {args.backend}")
     elif cmd == 'reset':
-        # destructive: remove all known app data and legacy stores
+        # Non-destructive reset: clear tasks, task details, notes, and chat history
         cwd = os.getcwd()
-        dirs_to_remove = [os.path.join(cwd, 'app_data'), os.path.join(cwd, 'data_pkms'), os.path.join(cwd, 'demo_data')]
-        files_to_remove = [os.path.join(cwd, 'tasks.json'), os.path.join(cwd, 'docs.json')]
-
-        # include explicit store file paths if available (covers JsonTaskStore/SqliteTaskStore)
-        try:
-            if getattr(tm, 'store', None) and getattr(tm.store, 'path', None):
-                files_to_remove.append(tm.store.path)
-        except Exception:
-            pass
-        try:
-            if getattr(dm, 'store', None) and getattr(dm.store, 'path', None):
-                files_to_remove.append(dm.store.path)
-        except Exception:
-            pass
-        # Known note store locations
-        files_to_remove.append(os.path.join(cwd, 'notes.json'))
-        files_to_remove.append(os.path.join(cwd, 'app_data', 'notes.json'))
-        files_to_remove.append(os.path.join(cwd, 'app_data', 'notes.db'))
-        files_to_remove.append(os.path.join(cwd, 'data_pkms', 'notes.json'))
 
         if not getattr(args, 'yes', False):
-            confirm = input("This will permanently delete app data, legacy stores, and chat history. Type YES to confirm: ").strip()
+            confirm = input("This will clear tasks, notes, and chat history (non-destructive). Type YES to confirm: ").strip()
             if confirm != 'YES':
                 say('Aborted.', style='yellow')
                 return 0
 
-        # remove directories
-        for d in dirs_to_remove:
-            if os.path.exists(d):
+        # Clear in-memory task list and persist empty store
+        try:
+            tm.tasks = []
+            tm._next_id = 1
+            if getattr(tm, 'store', None) and hasattr(tm.store, 'save_all'):
                 try:
-                    shutil.rmtree(d)
-                    say(f'Removed {d}', style='green')
-                except Exception as e:
-                    say(f'Failed to remove {d}: {e}', style='red')
+                    tm.store.save_all([])
+                    say('Cleared tasks store.', style='green')
+                except Exception:
+                    say('Failed to persist cleared tasks store.', style='yellow')
+        except Exception as e:
+            say(f'Failed to clear tasks in-memory: {e}', style='red')
 
-        # remove files
-        for f in files_to_remove:
-            try:
-                if f and os.path.exists(f):
-                    try:
-                        os.remove(f)
-                        say(f'Removed {f}', style='green')
-                    except IsADirectoryError:
-                        # in case a dir ended up in the list
-                        shutil.rmtree(f)
-                        say(f'Removed directory {f}', style='green')
-            except Exception as e:
-                say(f'Failed to remove {f}: {e}', style='red')
-
-        # Also attempt to remove chat history path used by ChatHistory (data_pkms/chat_history.json)
+        # Clear note store
         try:
-            from .chat import CHAT_HISTORY_FILE
-            if os.path.exists(CHAT_HISTORY_FILE):
-                os.remove(CHAT_HISTORY_FILE)
-                say(f'Removed chat history {CHAT_HISTORY_FILE}', style='green')
+            from .storage import make_note_store
+            note_store = make_note_store(args.backend or 'json', cwd)
+            if hasattr(note_store, 'save_all'):
+                note_store.save_all([])
+                say('Cleared notes store.', style='green')
         except Exception:
-            pass
+            say('Failed to clear notes store.', style='yellow')
 
-        # Clear in-memory state for this process
+        # Clear chat history file by loading and saving empty entries
         try:
-            if getattr(tm, 'tasks', None) is not None:
-                tm.tasks = []
+            history = ChatHistory.load()
+            history.entries = []
+            history.save()
+            say('Cleared chat history.', style='green')
         except Exception:
-            pass
+            say('Failed to clear chat history.', style='yellow')
 
-        say('Reset complete.', style='green')
+        # Clear document-derived selections/indices are left intact (documents preserved)
+
+        say('Non-destructive reset complete: tasks, notes, and chat history cleared.', style='green')
         return 0
     elif cmd == 'shell':
         print("Type '/help' for help, '/exit' to quit. Use command syntax or plain chat messages.")
