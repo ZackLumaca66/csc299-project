@@ -2,6 +2,10 @@
 
 set -e
 
+# Resolve script dir early and compute path to repo-relative sed_compat helper.
+SCRIPT_DIR_TOP="$(CDPATH="" cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SED_TOOL="$(cd "$SCRIPT_DIR_TOP/../../.." && pwd)/scripts/pytools/sed_compat.py"
+
 JSON_MODE=false
 SHORT_NAME=""
 BRANCH_NUMBER=""
@@ -111,7 +115,7 @@ get_highest_from_branches() {
         while IFS= read -r branch; do
             # Clean branch name: remove leading markers and remote prefixes
                     # Use python sed_compat to avoid depending on system sed
-                    clean_branch=$(echo "$branch" | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/^[* ]*//" -e "s|^remotes/[^/]*/||")
+                    clean_branch=$(echo "$branch" | "$SED_TOOL" -e "s/^[* ]*//" -e "s|^remotes/[^/]*/||")
             
             # Extract feature number if branch matches pattern ###-*
             if echo "$clean_branch" | grep -q '^[0-9]\{3\}-'; then
@@ -136,15 +140,15 @@ check_existing_branches() {
     git fetch --all --prune 2>/dev/null || true
     
     # Find all branches matching the pattern using git ls-remote (more reliable)
-    local remote_branches=$(git ls-remote --heads origin 2>/dev/null | grep -E "refs/heads/[0-9]+-${short_name}$" | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/.*\/\([0-9]*\)-.*/\1/" | sort -n)
+    local remote_branches=$(git ls-remote --heads origin 2>/dev/null | grep -E "refs/heads/[0-9]+-${short_name}$" | "$SED_TOOL" -e "s/.*\/\([0-9]*\)-.*/\1/" | sort -n)
     
     # Also check local branches
-    local local_branches=$(git branch 2>/dev/null | grep -E "^[* ]*[0-9]+-${short_name}$" | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/^[* ]*//" | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/-.*//" | sort -n)
+    local local_branches=$(git branch 2>/dev/null | grep -E "^[* ]*[0-9]+-${short_name}$" | "$SED_TOOL" -e "s/^[* ]*//" | "$SED_TOOL" -e "s/-.*//" | sort -n)
     
     # Check specs directory as well
     local spec_dirs=""
     if [ -d "$specs_dir" ]; then
-        spec_dirs=$(find "$specs_dir" -maxdepth 1 -type d -name "[0-9]*-${short_name}" 2>/dev/null | xargs -n1 basename 2>/dev/null | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/-.*//" | sort -n)
+        spec_dirs=$(find "$specs_dir" -maxdepth 1 -type d -name "[0-9]*-${short_name}" 2>/dev/null | xargs -n1 basename 2>/dev/null | "$SED_TOOL" -e "s/-.*//" | sort -n)
     fi
     
     # Combine all sources and get the highest number
@@ -162,7 +166,7 @@ check_existing_branches() {
 # Function to clean and format a branch name
 clean_branch_name() {
     local name="$1"
-    echo "$name" | tr '[:upper:]' '[:lower:]' | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/[^a-z0-9]/-/g" -e "s/-+/-/g" -e "s/^-//" -e "s/-$//"
+    echo "$name" | tr '[:upper:]' '[:lower:]' | "$SED_TOOL" -e "s/[^a-z0-9]/-/g" -e "s/-+/-/g" -e "s/^-//" -e "s/-$//"
 }
 
 # Resolve repository root. Prefer git information when available, but fall back
@@ -195,7 +199,7 @@ generate_branch_name() {
     local stop_words="^(i|a|an|the|to|for|of|in|on|at|by|with|from|is|are|was|were|be|been|being|have|has|had|do|does|did|will|would|should|could|can|may|might|must|shall|this|that|these|those|my|your|our|their|want|need|add|get|set)$"
     
     # Convert to lowercase and split into words
-    local clean_name=$(echo "$description" | tr '[:upper:]' '[:lower:]' | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/[^a-z0-9]/ /g")
+    local clean_name=$(echo "$description" | tr '[:upper:]' '[:lower:]' | "$SED_TOOL" -e "s/[^a-z0-9]/ /g")
     
     # Filter words: remove stop words and words shorter than 3 chars (unless they're uppercase acronyms in original)
     local meaningful_words=()
@@ -231,7 +235,7 @@ generate_branch_name() {
     else
         # Fallback to original logic if no meaningful words found
         local cleaned=$(clean_branch_name "$description")
-        echo "$cleaned" | tr '-' '\n' | grep -v '^$' | head -3 | tr '\n' '-' | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/-$//"
+        echo "$cleaned" | tr '-' '\n' | grep -v '^$' | head -3 | tr '\n' '-' | "$SED_TOOL" -e "s/-$//"
     fi
 }
 
@@ -270,7 +274,7 @@ if [ ${#BRANCH_NAME} -gt $MAX_BRANCH_LENGTH ]; then
     # Truncate suffix at word boundary if possible
     TRUNCATED_SUFFIX=$(echo "$BRANCH_SUFFIX" | cut -c1-$MAX_SUFFIX_LENGTH)
     # Remove trailing hyphen if truncation created one
-    TRUNCATED_SUFFIX=$(echo "$TRUNCATED_SUFFIX" | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/-$//")
+    TRUNCATED_SUFFIX=$(echo "$TRUNCATED_SUFFIX" | "$SED_TOOL" -e "s/-$//")
     
     ORIGINAL_BRANCH_NAME="$BRANCH_NAME"
     BRANCH_NAME="${FEATURE_NUM}-${TRUNCATED_SUFFIX}"

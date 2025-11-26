@@ -157,8 +157,8 @@ extract_plan_field() {
     
     grep "^\*\*${field_pattern}\*\*: " "$plan_file" 2>/dev/null | \
         head -1 | \
-        C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s|^\*\*${field_pattern}\*\*: ||" | \
-        C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e 's/^[ \t]*//' -e 's/[ \t]*$//' | \
+        "$REPO_ROOT/scripts/pytools/sed_compat.py" -e "s|^\*\*${field_pattern}\*\*: ||" | \
+        "$REPO_ROOT/scripts/pytools/sed_compat.py" -e 's/^[ \t]*//' -e 's/[ \t]*$//' | \
         grep -v "NEEDS CLARIFICATION" | \
         grep -v "^N/A$" || echo ""
 }
@@ -299,10 +299,13 @@ create_new_agent_file() {
     language_conventions=$(get_language_conventions "$NEW_LANG")
     
     # Perform substitutions with error checking using safer approach
-    # Escape special characters for sed by using a different delimiter or escaping
-    local escaped_lang=$(printf '%s\n' "$NEW_LANG" | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/[\\[\\.*^$()+{}|]/\\\\&/g")
-    local escaped_framework=$(printf '%s\n' "$NEW_FRAMEWORK" | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/[\\[\\.*^$()+{}|]/\\\\&/g")
-    local escaped_branch=$(printf '%s\n' "$CURRENT_BRANCH" | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/[\\[\\.*^$()+{}|]/\\\\&/g")
+    # Escape special characters by using the repo-local python helper
+    local escaped_lang
+    escaped_lang=$(printf '%s\n' "$NEW_LANG" | "$REPO_ROOT/scripts/pytools/sed_compat.py" -e "s/[\\[\\.*^$()+{}|]/\\\\&/g")
+    local escaped_framework
+    escaped_framework=$(printf '%s\n' "$NEW_FRAMEWORK" | "$REPO_ROOT/scripts/pytools/sed_compat.py" -e "s/[\\[\\.*^$()+{}|]/\\\\&/g")
+    local escaped_branch
+    escaped_branch=$(printf '%s\n' "$CURRENT_BRANCH" | "$REPO_ROOT/scripts/pytools/sed_compat.py" -e "s/[\\[\\.*^$()+{}|]/\\\\&/g")
     
     # Build technology stack and recent change strings conditionally
     local tech_stack
@@ -338,16 +341,16 @@ create_new_agent_file() {
     )
     
     for substitution in "${substitutions[@]}"; do
-        # use python tool to perform in-place substitution
-        if ! C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -i -e "$substitution" "$temp_file"; then
+        # use repo-local python tool to perform in-place substitution
+        if ! "$REPO_ROOT/scripts/pytools/sed_compat.py" -i -e "$substitution" "$temp_file"; then
             log_error "Failed to perform substitution: $substitution"
             rm -f "$temp_file"
             return 1
         fi
     done
 
-    # Convert \n sequences to actual newlines using python tool
-    if ! C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -i -e "s/\\\\n/\n/g" "$temp_file"; then
+    # Convert \n sequences to actual newlines using repo-local python tool
+    if ! "$REPO_ROOT/scripts/pytools/sed_compat.py" -i -e 's/\\n/\n/g' "$temp_file"; then
         log_error "Failed to convert escaped newlines"
         return 1
     fi
@@ -462,7 +465,7 @@ update_existing_agent_file() {
         
         # Update timestamp
         if [[ "$line" =~ \*\*Last\ updated\*\*:.*[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] ]]; then
-            echo "$line" | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/$current_date/" >> "$temp_file"
+            echo "$line" | "$REPO_ROOT/scripts/pytools/sed_compat.py" -e "s/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/$current_date/" >> "$temp_file"
         else
             echo "$line" >> "$temp_file"
         fi
