@@ -157,8 +157,8 @@ extract_plan_field() {
     
     grep "^\*\*${field_pattern}\*\*: " "$plan_file" 2>/dev/null | \
         head -1 | \
-        sed "s|^\*\*${field_pattern}\*\*: ||" | \
-        sed 's/^[ \t]*//;s/[ \t]*$//' | \
+        C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s|^\*\*${field_pattern}\*\*: ||" | \
+        C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e 's/^[ \t]*//' -e 's/[ \t]*$//' | \
         grep -v "NEEDS CLARIFICATION" | \
         grep -v "^N/A$" || echo ""
 }
@@ -300,9 +300,9 @@ create_new_agent_file() {
     
     # Perform substitutions with error checking using safer approach
     # Escape special characters for sed by using a different delimiter or escaping
-    local escaped_lang=$(printf '%s\n' "$NEW_LANG" | sed 's/[\[\.*^$()+{}|]/\\&/g')
-    local escaped_framework=$(printf '%s\n' "$NEW_FRAMEWORK" | sed 's/[\[\.*^$()+{}|]/\\&/g')
-    local escaped_branch=$(printf '%s\n' "$CURRENT_BRANCH" | sed 's/[\[\.*^$()+{}|]/\\&/g')
+    local escaped_lang=$(printf '%s\n' "$NEW_LANG" | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/[\\[\\.*^$()+{}|]/\\\\&/g")
+    local escaped_framework=$(printf '%s\n' "$NEW_FRAMEWORK" | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/[\\[\\.*^$()+{}|]/\\\\&/g")
+    local escaped_branch=$(printf '%s\n' "$CURRENT_BRANCH" | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/[\\[\\.*^$()+{}|]/\\\\&/g")
     
     # Build technology stack and recent change strings conditionally
     local tech_stack
@@ -338,19 +338,19 @@ create_new_agent_file() {
     )
     
     for substitution in "${substitutions[@]}"; do
-        if ! sed -i.bak -e "$substitution" "$temp_file"; then
+        # use python tool to perform in-place substitution
+        if ! C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -i -e "$substitution" "$temp_file"; then
             log_error "Failed to perform substitution: $substitution"
-            rm -f "$temp_file" "$temp_file.bak"
+            rm -f "$temp_file"
             return 1
         fi
     done
-    
-    # Convert \n sequences to actual newlines
-    newline=$(printf '\n')
-    sed -i.bak2 "s/\\\\n/${newline}/g" "$temp_file"
-    
-    # Clean up backup files
-    rm -f "$temp_file.bak" "$temp_file.bak2"
+
+    # Convert \n sequences to actual newlines using python tool
+    if ! C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -i -e "s/\\\\n/\n/g" "$temp_file"; then
+        log_error "Failed to convert escaped newlines"
+        return 1
+    fi
     
     return 0
 }

@@ -110,7 +110,8 @@ get_highest_from_branches() {
     if [ -n "$branches" ]; then
         while IFS= read -r branch; do
             # Clean branch name: remove leading markers and remote prefixes
-            clean_branch=$(echo "$branch" | sed 's/^[* ]*//; s|^remotes/[^/]*/||')
+                    # Use python sed_compat to avoid depending on system sed
+                    clean_branch=$(echo "$branch" | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/^[* ]*//" -e "s|^remotes/[^/]*/||")
             
             # Extract feature number if branch matches pattern ###-*
             if echo "$clean_branch" | grep -q '^[0-9]\{3\}-'; then
@@ -135,15 +136,15 @@ check_existing_branches() {
     git fetch --all --prune 2>/dev/null || true
     
     # Find all branches matching the pattern using git ls-remote (more reliable)
-    local remote_branches=$(git ls-remote --heads origin 2>/dev/null | grep -E "refs/heads/[0-9]+-${short_name}$" | sed 's/.*\/\([0-9]*\)-.*/\1/' | sort -n)
+    local remote_branches=$(git ls-remote --heads origin 2>/dev/null | grep -E "refs/heads/[0-9]+-${short_name}$" | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/.*\/\([0-9]*\)-.*/\1/" | sort -n)
     
     # Also check local branches
-    local local_branches=$(git branch 2>/dev/null | grep -E "^[* ]*[0-9]+-${short_name}$" | sed 's/^[* ]*//' | sed 's/-.*//' | sort -n)
+    local local_branches=$(git branch 2>/dev/null | grep -E "^[* ]*[0-9]+-${short_name}$" | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/^[* ]*//" | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/-.*//" | sort -n)
     
     # Check specs directory as well
     local spec_dirs=""
     if [ -d "$specs_dir" ]; then
-        spec_dirs=$(find "$specs_dir" -maxdepth 1 -type d -name "[0-9]*-${short_name}" 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/-.*//' | sort -n)
+        spec_dirs=$(find "$specs_dir" -maxdepth 1 -type d -name "[0-9]*-${short_name}" 2>/dev/null | xargs -n1 basename 2>/dev/null | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/-.*//" | sort -n)
     fi
     
     # Combine all sources and get the highest number
@@ -230,7 +231,7 @@ generate_branch_name() {
     else
         # Fallback to original logic if no meaningful words found
         local cleaned=$(clean_branch_name "$description")
-        echo "$cleaned" | tr '-' '\n' | grep -v '^$' | head -3 | tr '\n' '-' | sed 's/-$//'
+        echo "$cleaned" | tr '-' '\n' | grep -v '^$' | head -3 | tr '\n' '-' | C:/Users/zackm/Documents/csc299-project/scripts/pytools/sed_compat.py -e "s/-$//"
     fi
 }
 

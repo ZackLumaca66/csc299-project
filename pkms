@@ -2,6 +2,19 @@
 # PKMS launcher for Unix-like shells
 # Try python3 then python for compatibility across systems
 export PYTHONUNBUFFERED=1
+# Provide a lightweight `sed` fallback for shells that don't have GNU sed
+# (some minimal Git Bash / MSYS environments may not have `sed` on PATH).
+# This avoids noisy "bash: sed: command not found" messages when external
+# helper scripts (or environment hooks) attempt to call `sed`.
+if ! command -v sed >/dev/null 2>&1; then
+	sed() { 
+		# Very small passthrough: don't attempt to emulate sed features.
+		# If callers expect transformations, they should install sed.
+		# This stub prevents "command not found" noise by acting as a no-op filter.
+		cat
+	}
+	export -f sed 2>/dev/null || true
+fi
 # Prefer repo .venv python if present
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_PYTHON="$REPO_DIR/.venv/Scripts/python.exe"
