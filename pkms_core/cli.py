@@ -65,6 +65,7 @@ def build_parser():
     import_p = sub.add_parser('import', help='import tasks and notes from JSON')
     import_p.add_argument('path', help='input file path')
     sub.add_parser('home', help='show a friendly home screen with quick commands')
+    # (No explicit 'help' subparser — rely on argparse/top-level help and 'home')
     setup_p = sub.add_parser('setup-llm', help='configure OpenAI API key for LLM usage (stores in OS keyring)')
     setup_p.add_argument('--remove', action='store_true', help='remove stored API key')
     setup_p.add_argument('--show', action='store_true', help='show whether a key is stored (masked)')
@@ -79,13 +80,37 @@ def build_parser():
 def main(argv=None):
     argv = argv or sys.argv[1:]
     parser = build_parser(); args = parser.parse_args(argv)
-    if not args.command:
-        parser.print_help(); return 0
+
+    # Initialize logging and managers early so we can detect first-run state
     logger = init_logging(args.verbose)
     tm = TaskManager(backend=args.backend)
     dm = DocumentManager()
     llm = LLMAdapter()
     agent = Agent(llm=llm)
+
+    # If no subcommand was provided, display the `home` screen on first-run
+    # (no tasks, documents, or notes). Otherwise, show argparse help.
+    if not getattr(args, 'command', None):
+        from .storage import list_notes
+        base = os.getcwd()
+        try:
+            tasks = tm.list() or []
+        except Exception:
+            tasks = []
+        try:
+            docs = dm.list() or []
+        except Exception:
+            docs = []
+        try:
+            notes = list_notes(args.backend or 'json', base) or []
+        except Exception:
+            notes = []
+
+        if not tasks and not docs and not notes:
+            # treat as if the user asked for 'home'
+            args.command = 'home'
+        else:
+            parser.print_help(); return 0
     # Only show LLM availability messages on verbose mode or when running chat/home/advise commands
     if args.verbose or args.command in {'chat', 'home', 'advise'}:
         if llm.available():

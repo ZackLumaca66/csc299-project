@@ -118,3 +118,18 @@ Troubleshooting
 
 Want help?
 - I can add a short entry to `README.md` or a GitHub Actions workflow to run tests and the smoke script on CI. Tell me which.
+
+First-run welcome
+-----------------
+
+When a new user runs `pkms` (or `python -m pkms_core.cli`) without any existing data, the CLI now displays the `PKMS Home — quick commands` welcome screen instead of the raw argparse help. This happens only when there are no tasks, documents, or notes present in the current working directory — it's intended to help newcomers discover common commands quickly.
+
+Examples:
+
+```bash
+# In an empty directory
+.venv/Scripts/python.exe -m pkms_core.cli
+# -> prints the PKMS Home quick commands screen
+```
+
+If you prefer the traditional argparse help, run `pkms --help` or provide any subcommand.
