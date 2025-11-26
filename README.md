@@ -5,6 +5,19 @@
 Lean task + personal knowledge management CLI with selectable storage (JSON or SQLite), a focused dashboard,
 and a small chat/agent layer that can provide concise productivity advice.
 
+**Instructions (Quick Overview)**
+
+- Purpose: PKMS is a small CLI tool for managing tasks, lightweight notes, and short agent-driven productivity advice. It supports JSON or SQLite stores and includes a minimal chat interface.
+- Recommended workflow: create a Python virtual environment, install the package in editable mode, then use the CLI via `python -m pkms_core.cli` or the provided `./pkms` launcher.
+- Git Bash on Windows: activate the venv then run `python -m pkms_core.cli <command>`; the repo includes a Python sed-compat helper so shell scripts should work cross-platform.
+- Common commands: `add`, `list`, `describe`, `notes add`, `chat`, `advise`, `reset --yes` (see Quick Start below for examples).
+
+If you prefer a single command to run the CLI in any shell, use the module form:
+```
+python -m pkms_core.cli list
+```
+
+
 ## Features
 - Tasks: add, list (dashboard), edit, describe (add detail), search, delete
 - Storage: `--backend json` or `--backend sqlite` (select per-command or default in API)
