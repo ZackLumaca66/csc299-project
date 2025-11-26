@@ -70,8 +70,8 @@ def build_parser():
     setup_p.add_argument('--remove', action='store_true', help='remove stored API key')
     setup_p.add_argument('--show', action='store_true', help='show whether a key is stored (masked)')
     # reset command: wipe app data
-    reset_p = sub.add_parser('reset', help='wipe all app data (tasks, docs, chat history)')
-    reset_p.add_argument('--yes', action='store_true', help='confirm destructive reset')
+    reset_p = sub.add_parser('reset', help='clear tasks, notes, and chat history (non-destructive)')
+    reset_p.add_argument('--yes', action='store_true', help='confirm reset (non-destructive)')
     sub.add_parser('instructions', help='show detailed instructions and examples for all commands')
     shell_p = sub.add_parser('shell', help='interactive shell (enter commands or chat messages)'); shell_p.add_argument('--backend', choices=['json','sqlite'])
     sub.add_parser('info', help='show environment and data paths')
@@ -511,6 +511,8 @@ def main(argv=None):
         say('  describe <n> <detail>    — add a bullet/detail to a task')
         say('  delete <n>               — remove a task by list-number')
         say('  notes <n>                — manage notes: list/add/view/describe/delete')
+        say('  help                    — show argparse help (-h)')
+        say('  instructions            — show detailed usage and examples')
         say('  list                    — show tasks-only dashboard')
         say('  dashboard               — show dashboard summary')
         say('  complete <n>            — mark task completed (use list-number)')
@@ -518,7 +520,7 @@ def main(argv=None):
         say('  chat-history             — display saved chat history')
         say('  advise                   — compact productivity advice')
         say('  setup-llm                — store or remove OpenAI API key (use --show or --remove)')
-        say('  reset [--yes]            — DESTRUCTIVE: wipe persistent stores and chat history')
+        say('  reset [--yes]            — Clears tasks, notes, and chat history (non-destructive)')
     elif cmd == 'instructions':
         say('PKMS Instructions', style='bold')
         say('A brief command reference — one-line descriptions only.', style='cyan')
@@ -565,7 +567,7 @@ def main(argv=None):
         say('  Store, view, or remove your OpenAI API key in the OS keyring.')
 
         say('\nreset [--yes]')
-        say('  DESTRUCTIVE: remove all known persistent stores and chat history.')
+        say('  Note: `reset` now clears tasks, notes, and chat history without deleting app files or documents.')
 
         say('\nhome')
         say('  Print a short quick-reference of common commands.')

@@ -69,7 +69,8 @@ python -m pkms_core.cli chat-history
 # Show compact productivity advice (heuristic + short doc-derived summary)
 python -m pkms_core.cli advise
 
-# Wipe all app data (destructive — removes app_data, data_pkms, demo_data, tasks/db/json files)
+# Clear tasks/notes/chat history (non-destructive — preserves documents and app files)
+# The `reset` command empties persisted stores but does not remove directories or documents.
 python -m pkms_core.cli reset --yes
 ```
 
@@ -132,7 +133,7 @@ The CLI exposes the following top-level commands. Most commands accept `--backen
 - `chat-history` — show saved chat history
 - `advise` — print compact productivity advice summary
 - `setup-llm [--show|--remove]` — store or remove OpenAI API key in OS keyring (recommended) or use env var (see below)
-- `reset [--yes]` — destructive: removes app data, legacy stores, chat history, and clears in-process tasks
+- `reset [--yes]` — clears tasks, notes, and chat history (non-destructive — does not delete app files or documents)
 - `home` — brief quick command listing
 - `instructions` — longer usage text and notes
 - `shell` — interactive REPL-like shell for quick commands and chat
@@ -194,7 +195,7 @@ By default the project will create an `app_data/` and/or `data_pkms/` directory 
 - JSON stores (legacy/support): `data_pkms/tasks.json`, `data_pkms/docs.json`, or `app_data/tasks.json`
 - SQLite DB (durable): `app_data/tasks.db` or `data_pkms/tasks.db`
 
-The `reset` command removes these known locations (see `reset` docs above).
+The `reset` command empties these known stores (see `reset` docs above); it does not delete app directories or documents.
 
 ## Optional Extras
 - Small experimental TUI available via `dashboard --interactive` when Textual is installed
