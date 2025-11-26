@@ -438,7 +438,12 @@ def main(argv=None):
         for t in tm.list():
             try:
                 created_dt = datetime.fromisoformat(t.created)
-                if created_dt.date() == today:
+                # Normalize to local date for comparison when timestamps are timezone-aware
+                if getattr(created_dt, 'tzinfo', None) is not None:
+                    created_date = created_dt.astimezone().date()
+                else:
+                    created_date = created_dt.date()
+                if created_date == today:
                     tasks_today.append(t)
             except Exception:
                 continue
@@ -448,7 +453,11 @@ def main(argv=None):
         for n in notes:
             try:
                 nd = datetime.fromisoformat(n.created)
-                if nd.date() == today:
+                if getattr(nd, 'tzinfo', None) is not None:
+                    n_date = nd.astimezone().date()
+                else:
+                    n_date = nd.date()
+                if n_date == today:
                     notes_today.append(n)
             except Exception:
                 continue
