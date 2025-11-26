@@ -627,7 +627,6 @@ def main(argv=None):
 
         # Clear chat history file by loading and saving empty entries
         try:
-            from .chat import ChatHistory
             history = ChatHistory.load()
             history.entries = []
             history.save()
