@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "text": "Demo task 1",
+    "created": "2025-11-25T23:18:40.702172+00:00",
+    "completed": false,
+    "details": [],
+    "priority": 4,
+    "tags": []
+  },
+  {
+    "id": 2,
+    "text": "Demo task 2",
+    "created": "2025-11-25T23:18:40.889267+00:00",
+    "completed": false,
+    "details": [],
+    "priority": 3,
+    "tags": [
+      "demo"
+    ]
+  }
+]

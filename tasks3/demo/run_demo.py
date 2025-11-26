@@ -3,14 +3,12 @@ Run this script to produce a short demo run that can be captured for a screencas
 """
 from tasks3_cli.core import TaskManager
 from tasks3_cli.document import DocumentManager
-from tasks3_cli.neko import NekoManager
 from tasks3_cli.agent import AgentStub
 
 def main():
     print("Running scripted demo for tasks3_cli")
     tm = TaskManager()
     docs = DocumentManager()
-    neko = NekoManager()
     agent = AgentStub()
 
     # Reset state for demo
@@ -20,7 +18,7 @@ def main():
     docs.docs = []
     docs._next_id = 1
     docs.save()
-    neko.reset()
+    # Neko demo disabled for a minimal demo run (pet logic preserved in archive)
 
     print("Adding documents...")
     docs.add("Python notes", "This document contains notes about Python testing and pytest.", tags=["python","testing"])
@@ -30,8 +28,7 @@ def main():
     tm.add("Write unit tests for documents")
     tm.add("Record demo screencast")
 
-    print("Neko status before completing a task:")
-    print(neko.render())
+    # Neko rendering disabled in this minimal demo.
 
     print("Agent: list docs")
     print(agent.respond("list documents", task_manager=tm, doc_manager=docs))
@@ -39,13 +36,12 @@ def main():
     print("Agent: summarize docs")
     print(agent.respond("summarize documents", task_manager=tm, doc_manager=docs))
 
-    print("Completing a task to heal neko...")
+    print("Completing a task (neko demo disabled)...")
     tasks = tm.list()
     if tasks:
         tm.toggle(tasks[0].id)
 
-    print("Neko status after completing a task:")
-    print(neko.render())
+    # Neko rendering disabled in this minimal demo.
 
     print("Demo finished. You can record this session for a short screencast.")
 
