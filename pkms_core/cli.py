@@ -88,29 +88,10 @@ def main(argv=None):
     llm = LLMAdapter()
     agent = Agent(llm=llm)
 
-    # If no subcommand was provided, display the `home` screen on first-run
-    # (no tasks, documents, or notes). Otherwise, show argparse help.
+    # If no subcommand was provided, treat it as 'home' by default so
+    # `python -m pkms_core.cli` behaves like `python -m pkms_core.cli home`.
     if not getattr(args, 'command', None):
-        from .storage import list_notes
-        base = os.getcwd()
-        try:
-            tasks = tm.list() or []
-        except Exception:
-            tasks = []
-        try:
-            docs = dm.list() or []
-        except Exception:
-            docs = []
-        try:
-            notes = list_notes(args.backend or 'json', base) or []
-        except Exception:
-            notes = []
-
-        if not tasks and not docs and not notes:
-            # treat as if the user asked for 'home'
-            args.command = 'home'
-        else:
-            parser.print_help(); return 0
+        args.command = 'home'
     # Only show LLM availability messages on verbose mode or when running chat/home/advise commands
     if args.verbose or args.command in {'chat', 'home', 'advise'}:
         if llm.available():
