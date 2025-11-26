@@ -593,74 +593,51 @@ def main(argv=None):
         say(f"document store: {getattr(dstore, 'path', repr(dstore))}")
         say(f"active backend: {args.backend}")
     elif cmd == 'reset':
-        # destructive: remove all known app data and legacy stores
+        # Non-destructive reset: clear tasks, task details, notes, and chat history
         cwd = os.getcwd()
-        dirs_to_remove = [os.path.join(cwd, 'app_data'), os.path.join(cwd, 'data_pkms'), os.path.join(cwd, 'demo_data')]
-        files_to_remove = [os.path.join(cwd, 'tasks.json'), os.path.join(cwd, 'docs.json')]
-
-        # include explicit store file paths if available (covers JsonTaskStore/SqliteTaskStore)
-        try:
-            if getattr(tm, 'store', None) and getattr(tm.store, 'path', None):
-                files_to_remove.append(tm.store.path)
-        except Exception:
-            pass
-        try:
-            if getattr(dm, 'store', None) and getattr(dm.store, 'path', None):
-                files_to_remove.append(dm.store.path)
-        except Exception:
-            pass
-        # Known note store locations
-        files_to_remove.append(os.path.join(cwd, 'notes.json'))
-        files_to_remove.append(os.path.join(cwd, 'app_data', 'notes.json'))
-        files_to_remove.append(os.path.join(cwd, 'app_data', 'notes.db'))
-        files_to_remove.append(os.path.join(cwd, 'data_pkms', 'notes.json'))
 
         if not getattr(args, 'yes', False):
-            confirm = input("This will permanently delete app data, legacy stores, and chat history. Type YES to confirm: ").strip()
+            confirm = input("This will clear tasks, notes, and chat history (non-destructive). Type YES to confirm: ").strip()
             if confirm != 'YES':
                 say('Aborted.', style='yellow')
                 return 0
 
-        # remove directories
-        for d in dirs_to_remove:
-            if os.path.exists(d):
+        # Clear in-memory task list and persist empty store
+        try:
+            tm.tasks = []
+            tm._next_id = 1
+            if getattr(tm, 'store', None) and hasattr(tm.store, 'save_all'):
                 try:
-                    shutil.rmtree(d)
-                    say(f'Removed {d}', style='green')
-                except Exception as e:
-                    say(f'Failed to remove {d}: {e}', style='red')
+                    tm.store.save_all([])
+                    say('Cleared tasks store.', style='green')
+                except Exception:
+                    say('Failed to persist cleared tasks store.', style='yellow')
+        except Exception as e:
+            say(f'Failed to clear tasks in-memory: {e}', style='red')
 
-        # remove files
-        for f in files_to_remove:
-            try:
-                if f and os.path.exists(f):
-                    try:
-                        os.remove(f)
-                        say(f'Removed {f}', style='green')
-                    except IsADirectoryError:
-                        # in case a dir ended up in the list
-                        shutil.rmtree(f)
-                        say(f'Removed directory {f}', style='green')
-            except Exception as e:
-                say(f'Failed to remove {f}: {e}', style='red')
-
-        # Also attempt to remove chat history path used by ChatHistory (data_pkms/chat_history.json)
+        # Clear note store
         try:
-            from .chat import CHAT_HISTORY_FILE
-            if os.path.exists(CHAT_HISTORY_FILE):
-                os.remove(CHAT_HISTORY_FILE)
-                say(f'Removed chat history {CHAT_HISTORY_FILE}', style='green')
+            from .storage import make_note_store
+            note_store = make_note_store(args.backend or 'json', cwd)
+            if hasattr(note_store, 'save_all'):
+                note_store.save_all([])
+                say('Cleared notes store.', style='green')
         except Exception:
-            pass
+            say('Failed to clear notes store.', style='yellow')
 
-        # Clear in-memory state for this process
+        # Clear chat history file by loading and saving empty entries
         try:
-            if getattr(tm, 'tasks', None) is not None:
-                tm.tasks = []
+            from .chat import ChatHistory
+            history = ChatHistory.load()
+            history.entries = []
+            history.save()
+            say('Cleared chat history.', style='green')
         except Exception:
-            pass
+            say('Failed to clear chat history.', style='yellow')
 
-        say('Reset complete.', style='green')
+        # Clear document-derived selections/indices are left intact (documents preserved)
+
+        say('Non-destructive reset complete: tasks, notes, and chat history cleared.', style='green')
         return 0
     elif cmd == 'shell':
         print("Type '/help' for help, '/exit' to quit. Use command syntax or plain chat messages.")
