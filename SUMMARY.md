@@ -1,3 +1,53 @@
+Development summary — implementation notes and process
+
+This document explains how the software was developed, the AI-assisted workflows and tools used, what worked well, what failed or required iteration, and the practical steps taken to deliver the final changes now present on `main`.
+
+Scope of work
+- Made PKMS cross-platform-friendly (removed fragile sed calls and added an in-repo Python helper), improved CLI UX (notes linked to tasks; reset non-destructive + non-interactive in CI), added a migration to convert Task.details into Note entries, and refined agent/advice behavior to accept notes and compute priority spread.
+
+AI-assisted development modes used
+- Chat-based assistant (interactive): I used a conversational code assistant while editing files and iterating on logic. This mode was used to reason about high-level design choices, write and refine code patches, and produce commitable diffs. The chat workflow was the primary place for rapid experimentation and justification of changes.
+- Editor-integrated suggestions (Copilot-style inline): while editing in VS Code I used inline completion suggestions to accelerate boilerplate coding (dataclass fields, CRUD patterns, small helper functions). These inline completions were treated as drafts — each suggestion was reviewed and adjusted for project conventions.
+- Copilot Chat / larger prompt snippets: for more complex refactors or to produce multi-file patches (e.g., storage + models + migration), I used Chat-style prompts to generate cohesive patches and then validated them with tests.
+- Local deterministic LLM-mock/testing: the project includes a mock LLM adapter used by tests; this made it safe to iterate on agent behavior and test-driven changes without network calls or nondeterministic outputs.
+- External brainstorming: you used Google Gemini to brainstorm the feature set and git/VSCode usage guidance — those ideas informed the prioritization and specific UX changes (notes API, non-destructive reset, repo-local helpers).
+
+Specification & planning documents
+- I relied on a few repository artifacts and small planning steps: the `.specify` templates in `tasks5/.specify/`, the Copilot agent instructions file, and task-level README/demo examples under `tasks3/`. For larger changes I wrote a small plan (tracked with the repo todo tool) with ordered steps: (1) add model field, (2) update stores, (3) update CLI, (4) adjust tests, (5) run migrations, (6) run full test suite, (7) push.
+
+Test-driven practices and validation
+- Unit tests: I ran targeted failing tests first, then the full pytest suite. The repository has many tests that exercise the CLI, storage backends, and agent heuristics. Tests were used both to detect regressions (e.g., `add_note(task_id=...)` signature and reset prompt) and to validate fixes.
+- Mocks: the included LLM mock allowed deterministic advice behavior checks.
+- Iteration cycle: edit → run targeted tests → fix → run full suite → commit. This loop uncovered schema and CI-interaction issues that were straightforward to fix once reproduced locally.
+
+What worked well
+- Tests caught non-obvious regressions quickly (signature and interactive prompt). Running the specific failing tests first made feedback fast.
+- The combined use of interactive chat and inline suggestions produced accurate, consistent patches across multiple files (models, storage, CLI).
+- Having a local deterministic LLM/mock in the codebase allowed agent-related changes to be validated without network latency or API usage.
+- The small migration script approach allowed safe, incremental schema changes (SQLite PRAGMA checks and ALTER fallbacks).
+
+What did not work / false starts
+- An early change removed `task_id` support for notes, which broke tests; restoring the datamodel and store persistence was necessary. This was a regression introduced during refactor work and illustrates why tests that cover storage signatures are valuable.
+- Another change made `reset` prompt unconditionally; this interfered with pytest's captured stdin and caused OSErrors. The lesson: CLI confirmation prompts must either accept an explicit `--yes` flag or auto-confirm in non-interactive environments. I implemented auto-confirm when stdin is not a TTY to preserve interactive safety while enabling CI.
+- A stash/pop attempt failed until the local `app_data/*` files were committed/ignored or handled. This required careful local stash handling rather than blind popping.
+
+Practical steps performed (high-level)
+1. Restored `Note.task_id` in `pkms_core/models.py`.
+2. Updated JSON and SQLite note stores in `pkms_core/storage.py` to persist `task_id` and perform schema migration when needed.
+3. Restored `add_note(..., task_id=...)` signature and updated callers.
+4. Updated `pkms_core/cli.py` to auto-confirm `reset` when stdin is not a TTY to avoid blocking CI/tests.
+5. Added a small migration helper and `scripts/pytools/sed_compat.py` to replace brittle sed uses with a cross-platform Python helper.
+6. Ran targeted tests, then the full test suite (result: tests passing locally), committed changes, and pushed `main` to the remote repository.
+
+Next steps & recommendations
+- Consider adding explicit migration tests that run against an older SQLite schema to ensure PRAGMA-based additions are robust.
+- Decide policy for ephemeral `app_data/` files (commit vs `.gitignore`) to avoid stash/merge friction.
+- If desired, reintroduce an explicit `--yes` flag for `reset` (the current behavior auto-confirms only when stdin is not a TTY); either approach is acceptable but be consistent across CLIs.
+
+If you want, I can also: (A) restore the local stash and resolve `app_data/*` differences, (B) add packaging metadata refresh steps, or (C) add a test that validates migration from JSON note dumps into the SQLite store.
+
+-- development agent
+This summary was generated as part of the development process and added to the repository root for traceability.
 Summary of development process for csc299-project
 
 Overview
